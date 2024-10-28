@@ -4,16 +4,15 @@ import wx.html
 from wxasync import WxAsyncApp
 from pubsub import pub
 from pprint import pprint as pp
-from rms_transcriber import LeftPanel
 from rms_transcriber import AsyncTranscriber
-from rms_transcriber import BiderectionalStreamer
+from rms_transcriber import BidirectionalStreamer
 from rms_transcriber import RMSFrame    
 from concurrent.futures import ThreadPoolExecutor
 from rms_transcriber import apc
 
 apc.processor   = None
 apc.transcriber = None
-streamer=BiderectionalStreamer( )
+streamer=BidirectionalStreamer( )
 
 async def run_streaming_in_executor():
     loop = asyncio.get_running_loop()

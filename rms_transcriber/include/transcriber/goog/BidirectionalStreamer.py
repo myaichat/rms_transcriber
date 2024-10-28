@@ -14,7 +14,7 @@ RED = "\033[0;31m"
 GREEN = "\033[0;32m"
 YELLOW = "\033[0;33m"
 
-class BiderectionalStreamer:
+class BidirectionalStreamer:
     def __init__(self):
         pass
 
