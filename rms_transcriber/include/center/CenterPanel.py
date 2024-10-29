@@ -296,11 +296,20 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         sizer.Add(self.nav_panel, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(sizer)
         self.content_buffer = ""
+    async def consume_askmodel_queue(self, queue):
+        # Continuously consume the queue and update WebView
+        while True:
+            content = await queue.get()
+            #print('\n\tconsume_queue: ',content)
+            #pub.sendMessage("display_response", response=content)  # Send the content to the WebView
+            #wx.CallAfter(self.update_text, content)  # Update UI safely in the main thread
+            queue.task_done()
+            self.content_buffer += content        
     async def update_webview_periodically(self):
         while True:
             if self.content_buffer:
                 print('ProcessorPanel', self.content_buffer)
-                #pub.sendMessage("display_response", response=self.content_buffer)
+                pub.sendMessage("display_response", response=self.content_buffer)
                 #wx.CallAfter(self.update_text, self.content_buffer)
                 self.content_buffer = ""  # Clear buffer after update
             await asyncio.sleep(0.2)  # Update every 200ms        

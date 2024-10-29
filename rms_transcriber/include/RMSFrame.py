@@ -30,7 +30,7 @@ class RMSFrame(wx.Frame):
         #sizer.Add(self.button, 0, wx.CENTER | wx.ALL, 5)
         #sizer.Add(self.abutton, 0, wx.CENTER | wx.ALL, 5)
         panel.SetSizer(sizer)
-        #self.content_buffer = ""
+        self.content_buffer = ""
         
         if 0:
             
@@ -48,7 +48,15 @@ class RMSFrame(wx.Frame):
             self.Layout()
             self.Bind(wx.EVT_SIZE, self.OnSize)
 
-
+    async def consume_askmodel_queue(self, queue):
+        # Continuously consume the queue and update WebView
+        while True:
+            content = await queue.get()
+            #print('\n\tconsume_queue: ',content)
+            #pub.sendMessage("display_response", response=content)  # Send the content to the WebView
+            #wx.CallAfter(self.update_text, content)  # Update UI safely in the main thread
+            queue.task_done()
+            content_buffer += content
      
 
     def OnSize(self, event):

@@ -25,7 +25,7 @@ class BidirectionalStreamer:
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             sample_rate_hertz=SAMPLE_RATE,
             #language_code="en-US",
-            language_code="uk-UA",
+            language_code=apc.transcription_lang,
             max_alternatives=1,
             model='latest_long',
         )

@@ -19,20 +19,92 @@ async def run_streaming_in_executor():
     with ThreadPoolExecutor() as executor:
         await loop.run_in_executor(executor, streamer.StartStreaming)
 
+class SelectionDialog(wx.Dialog):
+    def __init__(self, parent, title="Select Option"):
+        super().__init__(parent, title=title, size=(300, 200))
+        self.panel = wx.Panel(self)
+
+        # Create radio buttons for selection
+        self.radio_option1 = wx.RadioButton(self.panel, label="en-US", style=wx.RB_GROUP)
+        self.radio_option2 = wx.RadioButton(self.panel, label="uk-UA")
+        # OK and Cancel buttons
+        ok_button = wx.Button(self.panel, label="OK")
+        cancel_button = wx.Button(self.panel, label="Cancel")
+        ok_button.Bind(wx.EVT_BUTTON, self.on_ok)
+        cancel_button.Bind(wx.EVT_BUTTON, self.on_cancel)
+
+        # Set OK button as the default to enable Enter key functionality
+        ok_button.SetDefault()
+
+        # Layout for radio buttons
+        radio_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        radio_sizer.Add(self.radio_option1, 0, wx.ALL, 5)
+        radio_sizer.Add(self.radio_option2, 0, wx.ALL, 5)
+        
+
+        # Layout for buttons, aligned to the bottom-right corner
+        button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        button_sizer.AddStretchSpacer(1)  # Adds space to push buttons to the right
+        button_sizer.Add(cancel_button, 0, wx.ALL, 5)
+        button_sizer.Add(ok_button, 0, wx.ALL, 5)
+
+        # Main vertical sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        main_sizer.Add(radio_sizer, 1, wx.ALL | wx.EXPAND, 10)
+        main_sizer.Add(button_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.RIGHT, 10)
+
+        self.panel.SetSizer(main_sizer)
+
+        # Center the dialog on the screen
+        self.CenterOnScreen()
+
+    def on_ok(self, event):
+        # Determine which radio button is selected
+        if self.radio_option1.GetValue():
+            self.selected_option = "en-US"
+        elif self.radio_option2.GetValue():
+            self.selected_option = "uk-UA"
+
+        
+        self.EndModal(wx.ID_OK)
+
+    def on_cancel(self, event):
+        self.EndModal(wx.ID_CANCEL)
+
+
+
+
+
+
+async def show_selection_dialog():
+    """Function to show the selection dialog and wait for the user response."""
+    dialog = SelectionDialog(None, "Choose an option")
+    if dialog.ShowModal() == wx.ID_OK:
+        print("User selected:", dialog.selected_option)
+        return dialog.selected_option
+    else:
+        print("User canceled the dialog.")
+        return None
+    
 async def main():
-    apc.proc_queue = asyncio.Queue()
+    apc.askmodel_queue = asyncio.Queue()
     apc.trans_queue = asyncio.Queue()
     app = WxAsyncApp()  # Use WxAsyncApp for async compatibility
+    user_selection = await show_selection_dialog()
+    apc.transcription_lang = user_selection
+    if user_selection is None:
+        print("Exiting app as dialog was canceled.")
+        return  # Exit if the dialog is canceled    
     #Resumable Microphone Streaming 
     frame = RMSFrame(  title="RMS Transcribe for Google Speech", size=(1200, 1000))
     #frame.SetSize((1200, 1000)) 
     frame.Show()
-    apc.processor = AsyncProcessor(apc.proc_queue)
+    apc.processor = AsyncProcessor(apc.askmodel_queue)
     apc.transcriber = AsyncTranscriber(apc.trans_queue)
     # Start the queue consumer task
 
     asyncio.create_task(run_streaming_in_executor())
-
+    asyncio.create_task(frame.center_panel.processor_panel.consume_askmodel_queue(apc.askmodel_queue))
     asyncio.create_task(frame.left_panel.tree.consume_transcription_queue())
     asyncio.create_task(frame.left_panel.tree.update_tree_periodically())
     asyncio.create_task(frame.center_panel.processor_panel.update_webview_periodically())

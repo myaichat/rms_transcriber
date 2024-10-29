@@ -124,7 +124,8 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             
             # Attach the new HtmlListBox to the tree item
             self.SetItemWindow(tree_item, new_html_item)
-
+            if apc.auto_scroll:
+                self.EnsureVisible(tree_item)
             return new_html_item
 
     def _on_stream_closed(self, data):
@@ -205,18 +206,21 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         
         # Adjust the size to fit new content
         html_item.adjust_size_to_fit_content(text_item)
+        #html_item.text_item=text_item   
         #html_item.Update()  # Refresh the HtmlListBox
-        html_item_height=html_item.GetSize().height
-        tree_item_height=self.get_item_height(html_item.tree_item)
-        if html_item_height*.9>tree_item_height :
-            print('html_item_height:',html_item_height, 'tree_item_height:', tree_item_height)
-           
+        try:
+            html_item_height=html_item.GetSize().height
+            tree_item_height=self.get_item_height(html_item.tree_item)
+            if html_item_height*.9>tree_item_height :
+                print('html_item_height:',html_item_height, 'tree_item_height:', tree_item_height)
             
-            padded_text=text_item+' \n'*html_item.padding_cnt
-            new_html_item= self.recreate_html_item(item_id, padded_text)
-            new_html_item.is_recreated=True
-            new_html_item.SetItemCount(1) 
-        
+                
+                padded_text=text_item+' \n'*html_item.padding_cnt
+                new_html_item= self.recreate_html_item(item_id, padded_text)
+                new_html_item.is_recreated=True
+                new_html_item.SetItemCount(1) 
+        except Exception as e:
+            print(e)
              
         self.Thaw()
     
