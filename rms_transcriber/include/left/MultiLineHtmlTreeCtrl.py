@@ -45,7 +45,10 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         
         # Add parent and child items with unique HTML content for each HtmlListBox
         for i in range(5):
-            parent1 = self.AppendMultilineItem(f'{i}:{i}', self.root, 'Tell me more about Apache Pyspark')
+            test='Tell me more about Apache Pyspark'
+            item_id=f'{i}:{i}'
+            parent1 = self.AppendMultilineItem(item_id, self.root, test, pad_item=False)
+            #parent1 = self.UpdateMultilineItem(item_id, self.root, test)
    
        
         
@@ -60,7 +63,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             #print('\n\tconsume_queue: ',content)
             #pub.sendMessage("display_response", response=content)  # Send the content to the WebView
             #wx.CallAfter(self.update_text, content)  # Update UI safely in the main thread
-            queue.task_done()
+            #queue.task_done()
             self.content_buffer.append(content  )
 
     async def update_tree_periodically(self):
@@ -224,7 +227,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
              
         self.Thaw()
     
-    def AppendMultilineItem(self, item_id, parent, text_item, data=None):
+    def AppendMultilineItem(self, item_id, parent, text_item, data=None, pad_item=True):
         # Append an item with an empty string as the text
 
         # Create an instance of CustomHtmlListBox with specific items, passing tree control and item references
@@ -233,9 +236,12 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             if data is not None:
                 self.SetItemData(item, data)
             self.tid += 1
-            padded_text=' \n'*5
-            self.html_items[item_id]=html_list_box = CustomHtmlListBox(self.tid,self, padded_text, self, item,  size=(400, 480))
-
+            text=text_item
+            if pad_item:
+                padded_text=' \n'*5
+                text=padded_text
+            self.html_items[item_id]=html_list_box = CustomHtmlListBox(self.tid,self, text, self, item,  size=(400, 480))
+            
             #html_list_box.Enable(False)
             self.SetItemWindow(item, html_list_box)
             html_list_box.SetMinSize((400, 480))
@@ -246,6 +252,8 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         
             # Add sample history items to the HtmlListBox
             #html_list_box.add_history_item("First line\nSecond line\nThird line")
+            if pad_item:
+                html_list_box.add_history_item(text_item)
             return item
     def _AppendMultilineItem(self, item_id, parent, text_item, data=None):
         # Append an item with an empty string as the text

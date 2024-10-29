@@ -56,11 +56,10 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         print(8888, 'self.formatted_item', self.formatted_item)
         pub.sendMessage("set_header", msg=prompt)
         
-        if 0:
-            await apc.processor.run_stream_response(prompt)
-
+        if apc.mock:
+            await self.mock_stream_response(prompt) 
         else:
-            await self.mock_stream_response(prompt)              
+            await apc.processor.run_stream_response(prompt)            
 
     async def mock_stream_response(self, prompt):
         """Mock streaming response for testing."""
@@ -105,12 +104,13 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
 
         #self.history_items.append(formatted_text)
         #self.SetItemCount(len(self.history_items))
+        self.text_item = item
         formatted_text=self.adjust_size_to_fit_content(item)
         self.formatted_item=formatted_text
         self.SetItemCount(1)
         #self.Refresh()
         #pp(self.GetParent())
-        if 0 and apc.auto_scroll:
+        if apc.auto_scroll:
             self.GetParent().EnsureVisible(self.tree_item)
             #self.GetParent().ScrollPages(1)
             #self.GetParent().GetParent().ScrollPages(1)

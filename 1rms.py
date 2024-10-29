@@ -74,7 +74,7 @@ class SelectionDialog(wx.Dialog):
 
 
 
-
+apc.mock=True
 
 async def show_selection_dialog():
     """Function to show the selection dialog and wait for the user response."""
@@ -105,8 +105,12 @@ async def main():
 
     asyncio.create_task(run_streaming_in_executor())
     asyncio.create_task(frame.center_panel.processor_panel.consume_askmodel_queue(apc.askmodel_queue))
-    asyncio.create_task(frame.left_panel.tree.consume_transcription_queue())
-    asyncio.create_task(frame.left_panel.tree.update_tree_periodically())
+    if 1:
+        asyncio.create_task(frame.left_panel.tree.consume_transcription_queue())
+        asyncio.create_task(frame.left_panel.tree.update_tree_periodically())
+    if 1:
+        asyncio.create_task(frame.left_panel.tree_2.consume_transcription_queue())
+        asyncio.create_task(frame.left_panel.tree_2.update_tree_periodically())        
     asyncio.create_task(frame.center_panel.processor_panel.update_webview_periodically())
     
     await app.MainLoop()  # Run the app's main loop asynchronously
