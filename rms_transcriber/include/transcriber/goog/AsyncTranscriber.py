@@ -118,7 +118,7 @@ class AsyncTranscriber:
                     break
                 #print("final")
             else:
-                if 0:
+                if 1:
                     sys.stdout.write(RED)
                     sys.stdout.write("\033[K")
                     sys.stdout.write(str(corrected_time) + ": " + transcript + "\r")

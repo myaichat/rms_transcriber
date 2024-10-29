@@ -99,6 +99,7 @@ async def main():
     frame = RMSFrame(  title="RMS Transcribe for Google Speech", size=(1200, 1000))
     #frame.SetSize((1200, 1000)) 
     frame.Show()
+    frame.CenterOnScreen()
     apc.processor = AsyncProcessor(apc.askmodel_queue)
     apc.transcriber = AsyncTranscriber(apc.trans_queue)
     # Start the queue consumer task

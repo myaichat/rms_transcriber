@@ -28,7 +28,7 @@ class AppLog_Controller():
         if self.page_history:
 
             if 1:
-                print(333333, self.page_history)
+                #print(333333, self.page_history)
                 forward=self.page_history.pop()
                 self.page_forward.append(forward)   
                 self.update_back()
@@ -37,7 +37,7 @@ class AppLog_Controller():
     def on_page_forward(self):
         print('on_page_forward')
         if self.page_forward:
-            print(333333, 'on_page_forward', self.page_forward)
+            #print(333333, 'on_page_forward', self.page_forward)
 
 
            
@@ -60,11 +60,12 @@ class AppLog_Controller():
         self.replace_header(msg)
   
     def done_display(self, response):
-        print(333333, 'done_display')
+        #print(333333, 'done_display')
         #self.applog.append('<br><br>')
         tmp_file=self.save_html()
         self.page_history.append(tmp_file) 
         self.update_back()
+        self.flip_colors()
 
     def update_back(self):
         if len(self.page_history)>1:
@@ -296,6 +297,9 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         sizer.Add(self.nav_panel, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(sizer)
         self.content_buffer = ""
+        pub.subscribe(self.ask_model, "ask_model")
+    def ask_model(self, prompt):
+        self.ask_model_text.SetValue(prompt)    
     async def consume_askmodel_queue(self, queue):
         # Continuously consume the queue and update WebView
         while True:
@@ -308,7 +312,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
     async def update_webview_periodically(self):
         while True:
             if self.content_buffer:
-                print('ProcessorPanel', self.content_buffer)
+                #print('ProcessorPanel', self.content_buffer)
                 pub.sendMessage("display_response", response=self.content_buffer)
                 #wx.CallAfter(self.update_text, self.content_buffer)
                 self.content_buffer = ""  # Clear buffer after update
@@ -358,25 +362,49 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
      
 
         # Add a spacer to push the "Forward" button to the far right
-        nav_sizer.AddStretchSpacer(1)
-
+        #nav_sizer.AddStretchSpacer(1)
+        self.ask_model_text = wx.TextCtrl(self.nav_panel, style=wx.TE_MULTILINE)
+        self.ask_model_text.SetMinSize((200, 60))  # Set width and height as needed
+        
+        nav_sizer.Add(self.ask_model_text, 1, wx.EXPAND | wx.ALL, 5)        
+        v_sizer = wx.BoxSizer(wx.VERTICAL)
         # Forward Button
         self.forward_button=forward_button = wx.StaticText(self.nav_panel, label="Forward")
 
 
         forward_button.Bind(wx.EVT_LEFT_DOWN, self.on_forward)
-        nav_sizer.Add(forward_button, 0, wx.ALL, 5)  # Removed wx.ALIGN_RIGHT
+        v_sizer.Add(forward_button, 0, wx.ALL, 5)  # Removed wx.ALIGN_RIGHT
         font = forward_button.GetFont()
         font.SetPointSize(12)  # Set to desired font size
         forward_button.SetFont(font)  
-        self.nav_panel.SetSizer(nav_sizer)
-        self.disable_forward()
+
         # Add padding to the top to remove the visible line
         #self.nav_panel.SetMinSize((-1, 25))  # Adjust height to fit the links with some padding
-
+        self.color_square = wx.StaticText(self.nav_panel, label="  ", size=(20, 20))  # A blank label to act as a "square"
+        self.color_square.SetBackgroundColour(wx.Colour(144, 238, 144))  # Start with green color
+        self.is_processing = False  # Flag to track processing state
+        v_sizer.Add(self.color_square, 0, wx.ALL , 5)
+        nav_sizer.Add(v_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.nav_panel.SetSizer(nav_sizer)
+        self.disable_forward()        
         # Optionally remove the border from WebView too
-        self.web_view.SetWindowStyle(wx.NO_BORDER)        
-
+        self.web_view.SetWindowStyle(wx.NO_BORDER)   
+        pub.subscribe(self.on_flip_colors, "ask_model")   
+        #pub.subscribe(self.on_done_processing, "done_display")
+    def on_flip_colors(self, prompt):
+        self.flip_colors()
+    def on_done_processing(self, prompt):
+        self.flip_colors()        
+    def flip_colors(self):
+        """Change the color of the square StaticText."""
+        if self.is_processing:
+            color = wx.Colour(144, 238, 144)
+        else:
+            color= wx.Colour(255, 182, 193)  # Red color
+        self.is_processing = not self.is_processing
+        
+        self.color_square.SetBackgroundColour(color)
+        self.color_square.Refresh()  # Ensure the new color is displayed
       
     def on_right_click(self, event):
         # Display the context menu only when there's selected text
@@ -446,11 +474,11 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         menu.Destroy()  
     def on_back(self, event):
        
-        print ("back")
+        #print ("back")
         """Handle the 'Back' action to navigate back in the WebView."""
         pub.sendMessage("back") 
     def on_forward(self, event):
-        print ("forward")
+        #print ("forward")
         """Handle the 'Back' action to navigate back in the WebView."""
         pub.sendMessage("forward")                                    
     def attach_custom_scheme_handler(self):
@@ -508,7 +536,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         <body>
             <table id="log-table">
                 <tr id="header-row">
-                    <td id="header-cell">Initial Header</td>
+                    <td id="header-cell">Start Speaking</td>
                 </tr>
                 <tr><td><hr></td></tr>
                 <tr id="log-row">

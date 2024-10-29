@@ -11,7 +11,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
     def __init__(self, tid, parent, text_item, tree_ctrl, tree_item, id=wx.ID_ANY, size=(200, 180)):
         super(CustomHtmlListBox, self).__init__(parent, id, size=size)
         self.text_item = text_item
-        print('text_item',text_item)
+        #print('text_item',text_item)
         #e()
         self.tid=tid
         self.tree_ctrl = tree_ctrl  # Reference to the tree control
@@ -44,16 +44,16 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
             self.single_click_delayed.Stop()
             self.single_click_delayed = None        
         # Highlight the corresponding tree item on double click
-        print("Double click in HtmlListBox 11111")
+        #print("Double click in HtmlListBox 11111")
         self.tree_ctrl.SelectItem(self.tree_item)
         if 1:
             # Get the selected row index and the data in the row
-
+            pub.sendMessage("ask_model", prompt=self.text_item)
             await self.ask_model(self.text_item)   
     async  def ask_model(self, prompt):
         #assert prompt.strip()
-        print(8888, 'ask_model', prompt)
-        print(8888, 'self.formatted_item', self.formatted_item)
+        #print(8888, 'ask_model', prompt)
+        #print(8888, 'self.formatted_item', self.formatted_item)
         pub.sendMessage("set_header", msg=prompt)
         
         if apc.mock:
@@ -63,7 +63,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
 
     async def mock_stream_response(self, prompt):
         """Mock streaming response for testing."""
-        print(9999, 'mock_stream_response', prompt)
+        #print(9999, 'mock_stream_response', prompt)
         responses = [
             f'{prompt}<br>',
             "This is the second response.<br>",
@@ -95,7 +95,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
     
     def on_scroll(self, event):
         # Prevent all scrolling
-        print('on_scroll')
+        #print('on_scroll')
         pass
 
     def add_history_item(self, item):
@@ -239,7 +239,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         if self.single_click_delayed:
             self.single_click_delayed.Stop()        
         # Highlight the corresponding tree item on single click
-        print("Single click in HtmlListBox")
+        #"Single click in HtmlListBox")
         self.tree_ctrl.SelectItem(self.tree_item)
         #self.SetBackgroundColour(wx.Colour(211, 211, 211)) 
         #event.Skip()
@@ -248,7 +248,8 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
     def ProcessSingleClick(self, item, event):
         if item:
             # self.SelectItem(item)
-            print("Single click detected on item in tree")
+            #print("Single click detected on item in tree")
+            pass
         self.single_click_delayed = None
         self.SetBackgroundColour(wx.Colour(240, 240, 240)) 
 
@@ -276,11 +277,11 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
                 
         # Print the calculated content height and control height for debugging
         control_height = self.GetSize().height
-        print(f"Total Content Height: {total_content_height}, Control Height: {control_height}")
+        #print(f"Total Content Height: {total_content_height}, Control Height: {control_height}")
         
         # Check if total content height is greater than the current control height
         is_overflowing = total_content_height > control_height
-        print("is_content_overflowing:", is_overflowing)  # Debug statement
+        #print("is_content_overflowing:", is_overflowing)  # Debug statement
         return is_overflowing
 
     def is_scrollable(self):

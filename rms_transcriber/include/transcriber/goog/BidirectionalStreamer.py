@@ -35,7 +35,7 @@ class BidirectionalStreamer:
         )
 
         mic_manager = ResumableMicrophoneStream(SAMPLE_RATE, CHUNK_SIZE)
-        print(mic_manager.chunk_size)
+        #print(mic_manager.chunk_size)
         sys.stdout.write(YELLOW)
         sys.stdout.write('\nListening, say "Quit" or "Exit" to stop.\n\n')
         sys.stdout.write("End (ms)       Transcript Results/Status\n")

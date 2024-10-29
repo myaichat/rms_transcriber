@@ -37,7 +37,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         self.html_items={}
         self.content_buffer = []
     def on_test_populate(self):
-        print('on_test_populate')
+        #print('on_test_populate')
         #self.tree.DeleteAllItems()
         root = self.root
         
@@ -103,9 +103,9 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
     def on_stream_closed(self, data):
         transcript, corrected_time, tid, rid = data
         if transcript.strip():  # Ensure there's content in the transcript
-            print('|'*80)
-            pp(transcript)
-            print('|'*80)
+            #print('|'*80)
+            #pp(transcript)
+            #print('|'*80)
             item_id = f'{tid}:{rid}'
             wx.CallAfter(self.recreate_html_item,item_id, transcript)
     def recreate_html_item(self, item_id, transcript):
@@ -215,7 +215,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             html_item_height=html_item.GetSize().height
             tree_item_height=self.get_item_height(html_item.tree_item)
             if html_item_height*.9>tree_item_height :
-                print('html_item_height:',html_item_height, 'tree_item_height:', tree_item_height)
+                #print('html_item_height:',html_item_height, 'tree_item_height:', tree_item_height)
             
                 
                 padded_text=text_item+' \n'*html_item.padding_cnt
@@ -296,7 +296,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
     def ProcessSingleClick(self, item, event):
         if item:
             self.SelectItem(item)
-            print("Single click detected on item in tree")
+            #print("Single click detected on item in tree")
         self.single_click_delayed = None
 
     def OnDoubleClick(self, event):
@@ -308,11 +308,11 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         item, flags = self.HitTest(pos)
         if item:
             self.SelectItem(item)
-            print("Double-clicked on item in tree")
+            #print("Double-clicked on item in tree")
 
         event.Skip()
     async def on_ask_model(self, event):
-        print('on_item_activated')
+        #print('on_item_activated')
         return
         # Get the selected row index and the data in the row
         index = event.GetIndex()

@@ -66,7 +66,7 @@ class LeftPanel(wx.Panel):
     def on_auto_scroll_checkbox(self, event):
         """Toggle auto scroll based on checkbox state."""
         apc.auto_scroll = self.auto_scroll_checkbox.IsChecked()
-        print(f"Auto Scroll is now {'enabled' if apc.auto_scroll else 'disabled'}")
+        #print(f"Auto Scroll is now {'enabled' if apc.auto_scroll else 'disabled'}")
     def on_panel_resize(self, event):
         #print('on_panel_resize')
         # Force the HtmlListBox to recalculate sizes on panel resize
@@ -75,6 +75,6 @@ class LeftPanel(wx.Panel):
         event.Skip()        
        
     def on_button_click(self, event):
-        print('on_button_click')
+        #print('on_button_click')
         self.tree.on_test_populate()
         self.tree_2.on_test_populate()

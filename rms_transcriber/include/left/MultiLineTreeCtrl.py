@@ -33,7 +33,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         self.large_font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.SetFont(self.large_font)
     def on_test_populate(self):
-        print('on_test_populate')
+        #print('on_test_populate')
         #self.tree.DeleteAllItems()
         root = self.root
         
@@ -81,16 +81,16 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
     def on_stream_closed(self, data):
         transcript, corrected_time, tid, rid = data
         if transcript.strip():  # Ensure there's content in the transcript
-            print('|'*80)
-            pp(transcript)
-            print('|'*80)
+            #print('|'*80)
+            #pp(transcript)
+            #print('|'*80)
             item_id = f'{tid}:{rid}'
             wx.CallAfter(self.UpdateMultilineItem,item_id, f'{item_id}, {transcript}')
     def on_partial_stream(self, data):  
         transcript, corrected_time, tid, rid = data
         #print('on_partial_stream')
         #print(transcript, corrected_time, tid, rid)
-        print('on_partial_stream')
+        #print('on_partial_stream')
         if transcript.strip():
             item_id=f'{tid}:{rid}'
             #self.html_items[tid]=transcript
@@ -126,6 +126,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                     self.SetItemTextColour(item, color)  # Set specific color for the word
                     item.is_colored=True
         self.SetItemFont(item, base_font)
+     
         self.ExpandAll()
 
 
@@ -139,9 +140,10 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         
         if data is not None:
             self.SetItemData(item, data)
-            
+        if apc.auto_scroll:
+            self.EnsureVisible(item)               
         return item
-    def UpdateMultilineItem(self, item_id, new_text, new_data=None, max_line_length=50):
+    def UpdateMultilineItem(self, item_id, new_text, new_data=None, max_line_length=47):
         # Check if item exists with the given item_id
         if item_id in self.html_items:
             item = self.html_items[item_id]
@@ -173,7 +175,8 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                 for word, color in color_words.items():
                     if word in multiline_text:
                         self.SetItemTextColour(item, color)  # Set specific color for the word
-
+            if apc.auto_scroll:
+                self.EnsureVisible(item)
             return item  # Return the updated item if needed
         else:
             print(f"Item with ID {item_id} not found.")
@@ -190,7 +193,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         # Get the item and the flags at the position of the click
         pos = event.GetPosition()
         item, flags = self.HitTest(pos)
-        print (f"OnSingleClick: item: {item}, flags: {flags}")
+        #print (f"OnSingleClick: item: {item}, flags: {flags}")
         # Check if the click was on the expand/collapse button, if so, skip single-click action
         if flags & CT.TREE_HITTEST_ONITEMBUTTON:
             event.Skip()  # Allow the tree to handle the expand/collapse
@@ -203,7 +206,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         # Get the item at the position of the single click
         pos = event.GetPosition()
         item1, flags = self.HitTest(pos)
-        print (f"ProcessSingleClick: item: {item}, flags: {flags}")
+        #print (f"ProcessSingleClick: item: {item}, flags: {flags}")
         if item:
             # Ensure the item is highlighted (selected)
             self.SelectItem(item)
@@ -215,17 +218,19 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
             item_text = self.GetItemText(item)
             if isinstance(window, wx.Button):
                 #wx.MessageBox(f"Single click detected on button of item '{item_text}'")
-                print (f"Single click detected on BUTTON of item '{item_text}'")
+                #print (f"Single click detected on BUTTON of item '{item_text}'")
+                pass
             else:
                 #wx.MessageBox(f"Single click detected on item '{item_text}' without button")
-                print (f"Single click detected on item '{item_text}' without button")
+                #print (f"Single click detected on item '{item_text}' without button")
+                pass
         
         # Clear the delayed call reference
         self.single_click_delayed = None
 
     async def OnDoubleClick(self, event):
         # Cancel the single-click action if double-click detected
-        print("OnDoubleClick")
+        #print("OnDoubleClick")
         if self.single_click_delayed:
             self.single_click_delayed.Stop()
             self.single_click_delayed = None
@@ -233,7 +238,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         # Get the item at the position of the double-click
         pos = event.GetPosition()
         item, flags = self.HitTest(pos)
-        print (f"OnDoubleClick: item: {item}, flags: {flags}")
+        #print (f"OnDoubleClick: item: {item}, flags: {flags}")
         if item:
             # Ensure the item is highlighted (selected)
             self.SelectItem(item)
@@ -249,19 +254,20 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                 if isinstance(window, wx.Button):
                     item_text = self.GetItemText(item)
                     #wx.MessageBox(f"Button double-clicked on item '{item_text}'")
-                    print (f"Button double-clicked on item '{item_text}'")  
+                    #print (f"Button double-clicked on item '{item_text}'")  
                 else:
                     item_text = self.GetItemText(item)
-                    print (f"Double-clicked on item '{item_text}' without button")
+                    #print (f"Double-clicked on item '{item_text}' without button")
             if 1:
             # Get the selected row index and the data in the row
                 item_text = self.GetItemText(item)
+                pub.sendMessage("ask_model", prompt=item_text)
                 await self.ask_model(item_text)
         # Skip the event to allow other handlers to process it
         event.Skip()
     async  def ask_model(self, prompt):
         #assert prompt.strip()
-        print(8888, 'ask_model', prompt)
+        #print(8888, 'ask_model', prompt)
         #print(8888, 'self.formatted_item', self.formatted_item)
         pub.sendMessage("set_header", msg=prompt)
         
@@ -271,7 +277,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
             await apc.processor.run_stream_response(prompt)  
     async def mock_stream_response(self, prompt):
         """Mock streaming response for testing."""
-        print(9999, 'mock_stream_response', prompt)
+        #print(9999, 'mock_stream_response', prompt)
         responses = [
             f'{prompt}<br>',
             "This is the second response.<br>",
@@ -322,7 +328,7 @@ class TranscriptionTreePanel(wx.Panel):
             self.tree.Refresh()
 
     def _on_test_populate(self):
-        print('on_test_populate')
+        #print('on_test_populate')
         #self.tree.DeleteAllItems()
         root = self.root
         
