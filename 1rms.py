@@ -74,7 +74,7 @@ class SelectionDialog(wx.Dialog):
 
 
 
-apc.mock=True
+apc.mock=False
 
 async def show_selection_dialog():
     """Function to show the selection dialog and wait for the user response."""
