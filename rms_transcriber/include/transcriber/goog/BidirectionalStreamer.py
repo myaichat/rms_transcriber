@@ -24,7 +24,8 @@ class BidirectionalStreamer:
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             sample_rate_hertz=SAMPLE_RATE,
-            language_code="en-US",
+            #language_code="en-US",
+            language_code="uk-UA",
             max_alternatives=1,
             model='latest_long',
         )

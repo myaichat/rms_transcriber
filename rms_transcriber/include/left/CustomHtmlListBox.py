@@ -3,9 +3,11 @@ import wx
 import wx.html
 from pubsub import pub
 from pprint import pprint as pp
-
+from wxasync import WxAsyncApp, AsyncBind
+from ..config import init_config
+apc = init_config.apc
 class CustomHtmlListBox(wx.html.HtmlListBox):
-    def __init__(self, tid, parent, text_item, tree_ctrl, tree_item, id=wx.ID_ANY, size=(200, 80)):
+    def __init__(self, tid, parent, text_item, tree_ctrl, tree_item, id=wx.ID_ANY, size=(200, 180)):
         super(CustomHtmlListBox, self).__init__(parent, id, size=size)
         self.text_item = text_item
         self.tid=tid
@@ -13,11 +15,13 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         self.tree_item = tree_item  # Reference to the corresponding tree item
         self.formatted_item = None
         self.SetItemCount(0)  # Initial item count
-        self.Bind(wx.EVT_LEFT_DCLICK, self.on_double_click)
+        #self.Bind(wx.EVT_LEFT_DCLICK, self.on_double_click)
+        AsyncBind(wx.EVT_LEFT_DCLICK, self.on_double_click, self)
         self.Bind(wx.EVT_LEFT_DOWN, self.on_single_click)
         #self.SetBackgroundColour(wx.Colour(255, 255, 255))
         #self.SetBackgroundColour(wx.Colour(211, 211, 211))
-        
+        self.padding_cnt=5
+        self.is_recreated=False
         # Remove the border by setting a simple style
         self.SetWindowStyleFlag(wx.BORDER_NONE)
         self.Bind(wx.EVT_SET_FOCUS, self.on_focus)
@@ -31,6 +35,26 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         self.Bind(wx.EVT_SCROLLWIN_LINEUP, self.on_scroll)
         self.Bind(wx.EVT_SCROLLWIN_LINEDOWN, self.on_scroll)
         pub.subscribe(self.on_resize, "panel_resize")
+
+    async def on_double_click(self, event):
+        if self.single_click_delayed:
+            self.single_click_delayed.Stop()
+            self.single_click_delayed = None        
+        # Highlight the corresponding tree item on double click
+        print("Double click in HtmlListBox 11111")
+        self.tree_ctrl.SelectItem(self.tree_item)
+        if 1:
+            # Get the selected row index and the data in the row
+
+            await self.ask_model(self.text_item)   
+    async  def ask_model(self, prompt):
+        print(8888, 'ask_model', prompt)
+        pub.sendMessage("set_header", msg=prompt)
+        
+        if 0:
+            await apc.processor.run_stream_response(prompt)
+        
+
     def on_resize(self, event): 
         #print('on_resize')
         #self.adjust_size_to_fit_content(self.text_item)
@@ -56,7 +80,12 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         formatted_text=self.adjust_size_to_fit_content(item)
         self.formatted_item=formatted_text
         self.SetItemCount(1)
-        self.Refresh()
+        #self.Refresh()
+        #pp(self.GetParent())
+        if apc.auto_scroll:
+            self.GetParent().EnsureVisible(self.tree_item)
+            self.GetParent().ScrollPages(1)
+            self.GetParent().GetParent().ScrollPages(1)
 
     def adjust_size_to_fit_content(self, text_item):
         """Calculate and adjust the size of the list box based on the content and LeftPanel width, with scroll check."""
@@ -114,6 +143,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         # Set the size of the list box, limiting the width to max_width
         self.SetSize((max_width, adjusted_height))
 
+
         # Refresh with wrapped content if necessary
         html_text = text.replace("\n", "<br>")
         formatted_text = f"""<span style="color: #2d2d2d; font-size: 14px; font-family: Arial, sans-serif;">{html_text}</span>"""        
@@ -124,6 +154,8 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         # Update the size of the HtmlListBox
         #self.SetSize((max_width, total_height))
         return formatted_text
+
+        
     def on_paint(self, event):
         """Handle paint event to draw scroll indicators if needed."""
         # First call the default paint method
@@ -189,22 +221,15 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
             print("Single click detected on item in tree")
         self.single_click_delayed = None
         self.SetBackgroundColour(wx.Colour(240, 240, 240)) 
-    def on_double_click(self, event):
-        if self.single_click_delayed:
-            self.single_click_delayed.Stop()
-            self.single_click_delayed = None        
-        # Highlight the corresponding tree item on double click
-        print("Double click in HtmlListBox")
-        self.tree_ctrl.SelectItem(self.tree_item)
-        self.SetBackgroundColour(wx.Colour(255, 255, 255))
+
         #item_index = self.tree_ctrl.GetIndexOfItem(self.tree_item)  # or define an index if needed
         #if item_index < len(self.history_items):
-        pp( self.formatted_item)        
+        #pp( self.formatted_item)        
         #
         #event.Skip()
-        print('is_scrollable:', self.is_scrollable())
+        #print('is_scrollable:', self.is_scrollable())
         #print ('has_hidden_top_content:',self.has_hidden_top_content())
-        print ('is_content_overflowing:',self.is_content_overflowing())
+        #print ('is_content_overflowing:',self.is_content_overflowing())
 
     def is_content_overflowing(self):
         """Check if the content height exceeds the visible height of the list box."""

@@ -30,7 +30,7 @@ class RMSFrame(wx.Frame):
         #sizer.Add(self.button, 0, wx.CENTER | wx.ALL, 5)
         #sizer.Add(self.abutton, 0, wx.CENTER | wx.ALL, 5)
         panel.SetSizer(sizer)
-        self.content_buffer = ""
+        #self.content_buffer = ""
         
         if 0:
             
@@ -65,7 +65,7 @@ class RMSFrame(wx.Frame):
             #wx.CallAfter(self.update_text, content)  # Update UI safely in the main thread
             self.queue.task_done()
             self.content_buffer += content  
-    async def update_webview_periodically(self):
+    async def _update_webview_periodically(self):
         while True:
             if self.content_buffer:
                 pub.sendMessage("display_response", response=self.content_buffer)

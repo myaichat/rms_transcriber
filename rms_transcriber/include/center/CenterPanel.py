@@ -295,6 +295,15 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         sizer.Add(self.web_view, 1, wx.EXPAND, 0)
         sizer.Add(self.nav_panel, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(sizer)
+        self.content_buffer = ""
+    async def update_webview_periodically(self):
+        while True:
+            if self.content_buffer:
+                print('ProcessorPanel', self.content_buffer)
+                #pub.sendMessage("display_response", response=self.content_buffer)
+                #wx.CallAfter(self.update_text, self.content_buffer)
+                self.content_buffer = ""  # Clear buffer after update
+            await asyncio.sleep(0.2)  # Update every 200ms        
 
     def enable_forward(self):
         self.forward_button.Enable(True)

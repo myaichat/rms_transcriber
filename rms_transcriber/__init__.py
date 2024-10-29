@@ -1,4 +1,5 @@
 from .include.config import init_config
+from .include.processor.openai.AsyncProcessor import AsyncProcessor
 
 from .include.transcriber.goog.AsyncTranscriber import AsyncTranscriber
 from .include.transcriber.goog.BidirectionalStreamer import BidirectionalStreamer
@@ -8,5 +9,5 @@ from .include.RMSFrame import RMSFrame
 init_config.init(**{})  # Initialize the configuration
 apc = init_config.apc  # Expose apc
 
-__all__ = [ 'apc','AsyncTranscriber','BidirectionalStreamer','RMSFrame']
+__all__ = [ 'apc','AsyncTranscriber','BidirectionalStreamer','RMSFrame', 'AsyncProcessor']
 #pip install -e .

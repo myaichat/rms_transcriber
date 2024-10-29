@@ -3,6 +3,7 @@ import wx
 import wx.lib.agw.customtreectrl as CT
 from wx.lib.pubsub import pub
 import asyncio
+from wxasync import WxAsyncApp, AsyncBind
 from pprint import pprint as pp
 #from rms_transcriber import apc
 from ..config import init_config
@@ -15,17 +16,19 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
                  size=wx.DefaultSize):
         agwStyle = (CT.TR_HAS_VARIABLE_ROW_HEIGHT |
                     CT.TR_HAS_BUTTONS |
-                    CT.TR_NO_LINES |
+                    #CT.TR_NO_LINES |
                     CT.TR_FULL_ROW_HIGHLIGHT)
         super(MultiLineHtmlTreeCtrl, self).__init__(parent, id, pos, size, 
                                                 agwStyle=agwStyle,
                                                 style=wx.WANTS_CHARS)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnSingleClick)
         self.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
+        #AsyncBind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick, self)
         self.single_click_delayed = None
         self.set_custom_expand_collapse_icons()
-        pub.subscribe(self.OnAddItem, "ADD_ITEM")
+        
         self.root = self.AddRoot("Root")
+        pub.subscribe(self.on_test_populate, "test_populate")
         #pub.subscribe(self.on_stream_closed, "stream_closed")
         
         #pub.subscribe(self.on_partial_stream, "partial_stream")
@@ -33,6 +36,22 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         self.tid=0
         self.html_items={}
         self.content_buffer = []
+    def on_test_populate(self):
+        print('on_test_populate')
+        #self.tree.DeleteAllItems()
+        root = self.root
+        
+        # Add multiline items
+        
+        # Add parent and child items with unique HTML content for each HtmlListBox
+        for i in range(5):
+            parent1 = self.AppendMultilineItem(f'{i}:{i}', self.root, 'Tell me more about Apache Pyspark')
+   
+       
+        
+        # Expand all items
+        self.ExpandAll()      
+       
     async def consume_transcription_queue(self):
         # Continuously consume the queue and update WebView
         queue=apc.trans_queue
@@ -105,14 +124,8 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             
             # Attach the new HtmlListBox to the tree item
             self.SetItemWindow(tree_item, new_html_item)
-            if 0:
-                # Adjust layout to reflect the changes
-                new_html_item.adjust_size_to_fit_content(transcript)
-                self.Layout()
-                
-                # Optionally expand/collapse to force a refresh if needed
-                self.Collapse(tree_item)
-                self.Expand(tree_item)
+
+            return new_html_item
 
     def _on_stream_closed(self, data):
         transcript, corrected_time, tid, rid = data
@@ -135,18 +148,9 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         #print('update_tree_with_transcript')
         if transcript.strip():
             parent1 = self.UpdateMultilineItem(item_id, self.root, transcript)
-            self.ExpandAll()  # Expanding within the main thread       
+            #self.ExpandAll()  # Expanding within the main thread       
 
-        
-    def OnAddItem(self):    
-        root = self.GetRootItem()
-        parent1 = self.AppendMultilineItem(root,
-                                            ["<b>Parent Info 1</b>", "<i>Additional Info</i>"])
-        child1 = self.AppendMultilineItem(parent1,
-                                           ["<b>Child Info 1</b>", "<i>Extra Info</i>"])
-        child2 = self.AppendMultilineItem(parent1,
-                                           ["<b>Child Info 2</b>", "<i>Extra Details</i>"])
-        self.ExpandAll()
+
     def set_custom_expand_collapse_icons(self):
         # Create a larger "+" and "-" bitmap for expand/collapse
         expand_bmp = wx.Bitmap(20, 20)
@@ -177,8 +181,20 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         image_list.Add(collapse_bmp)
         # Assign the image list to the tree control
         self.SetButtonsImageList(image_list)
+    def get_item_height(self,  item):
+        """
+        Retrieves the height of the specified tree item.
+        
+        Args:
+            item: The tree item to measure.
 
+        Returns:
+            int: The height of the tree item in pixels.
+        """
+        rect = self.GetBoundingRect(item, textOnly=False)
+        return rect.height
     def UpdateMultilineItem(self, item_id, parent, text_item, data=None):
+        self.Freeze()
         assert item_id in self.html_items, f"Item ID {item_id} not found in html_items"
         
         # Access the HtmlListBox for the specific item
@@ -189,20 +205,20 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         
         # Adjust the size to fit new content
         html_item.adjust_size_to_fit_content(text_item)
-        html_item.Update()  # Refresh the HtmlListBox
-        if 1:
+        #html_item.Update()  # Refresh the HtmlListBox
+        html_item_height=html_item.GetSize().height
+        tree_item_height=self.get_item_height(html_item.tree_item)
+        if html_item_height*.9>tree_item_height :
+            print('html_item_height:',html_item_height, 'tree_item_height:', tree_item_height)
+           
             
-            # Invalidate the best size and trigger layout recalculation for the tree control
-            self.InvalidateBestSize()
-            self.Layout()
-            
-            # Optionally collapse and expand the specific item if necessary to force a refresh
-            self.Collapse(html_item.tree_item)
-            self.Expand(html_item.tree_item)
-            
-            # Expand all to ensure visibility for the updated item, if needed
-            self.ExpandAll()              
-
+            padded_text=text_item+' \n'*html_item.padding_cnt
+            new_html_item= self.recreate_html_item(item_id, padded_text)
+            new_html_item.is_recreated=True
+            new_html_item.SetItemCount(1) 
+        
+             
+        self.Thaw()
     
     def AppendMultilineItem(self, item_id, parent, text_item, data=None):
         # Append an item with an empty string as the text
@@ -213,11 +229,16 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             if data is not None:
                 self.SetItemData(item, data)
             self.tid += 1
+            padded_text=' \n'*5
+            self.html_items[item_id]=html_list_box = CustomHtmlListBox(self.tid,self, padded_text, self, item,  size=(400, 480))
 
-            self.html_items[item_id]=html_list_box = CustomHtmlListBox(self.tid,self, text_item, self, item,  size=(300, 280))
             #html_list_box.Enable(False)
             self.SetItemWindow(item, html_list_box)
-            html_list_box.SetMinSize((300, 280)) 
+            html_list_box.SetMinSize((400, 480))
+            html_list_box.SetMaxSize((400, 480))
+            
+            self.InvalidateBestSize()
+            self.Layout()            
         
             # Add sample history items to the HtmlListBox
             #html_list_box.add_history_item("First line\nSecond line\nThird line")
@@ -276,4 +297,13 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         if item:
             self.SelectItem(item)
             print("Double-clicked on item in tree")
+
         event.Skip()
+    async def on_ask_model(self, event):
+        print('on_item_activated')
+        return
+        # Get the selected row index and the data in the row
+        index = event.GetIndex()
+        id_value = self.list_ctrl.GetItemText(index, 0)
+        transcription_value = self.list_ctrl.GetItemText(index, 1)
+        await self.ask_model(transcription_value)         
