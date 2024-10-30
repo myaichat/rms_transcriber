@@ -1,14 +1,38 @@
-import wx
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Google Cloud Speech API sample application using the streaming API.
+
+NOTE: This module requires the dependencies `pyaudio` and `termcolor`.
+To install using pip:
+
+    pip install pyaudio
+    pip install termcolor
+
+Example usage:
+    python transcribe_streaming_infinite.py
+"""
+
+# [START speech_transcribe_infinite_streaming]
 
 import queue
 import re
 import sys
 import time
-import threading    
+
 from google.cloud import speech
 import pyaudio
-from pubsub import pub
-import asyncio
 
 # Audio recording parameters
 STREAMING_LIMIT = 240000  # 4 minutes
@@ -74,7 +98,6 @@ class ResumableMicrophoneStream:
             # overflow while the calling thread makes network requests, etc.
             stream_callback=self._fill_buffer,
         )
-        self.last_saved_index = 0
 
     def __enter__(self: object) -> object:
         """Opens the stream.
@@ -191,7 +214,7 @@ class ResumableMicrophoneStream:
             yield b"".join(data)
 
 
-def listen_print_loop(rid, responses: object, stream: object) -> None:
+def listen_print_loop(responses: object, stream: object) -> None:
     """Iterates through server responses and prints them.
 
     The responses passed is a generator that will block until a response
@@ -210,8 +233,6 @@ def listen_print_loop(rid, responses: object, stream: object) -> None:
         responses: The responses returned from the API.
         stream: The audio stream to be processed.
     """
-    tid=0
-    start_time=0
     for response in responses:
         if get_current_time() - stream.start_time > STREAMING_LIMIT:
             stream.start_time = get_current_time()
@@ -249,22 +270,10 @@ def listen_print_loop(rid, responses: object, stream: object) -> None:
         if result.is_final:
             sys.stdout.write(GREEN)
             sys.stdout.write("\033[K")
-            elapsed_time=stream.result_end_time -start_time
-            sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
-            pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
-            if len(result.alternatives) > 1:
-                transcript = result.alternatives[1].transcript
-                sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
-                pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
-                if len(result.alternatives) > 2:
-                    transcript = result.alternatives[2].transcript
-                    sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
-                    pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
-           
+            sys.stdout.write(str(corrected_time) + ": " + transcript + "\n")
+
             stream.is_final_end_time = stream.result_end_time
             stream.last_transcript_was_final = True
-            tid += 1
-            start_time=stream.result_end_time 
 
             # Exit recognition if any of the transcribed phrases could be
             # one of our keywords.
@@ -272,7 +281,6 @@ def listen_print_loop(rid, responses: object, stream: object) -> None:
                 sys.stdout.write(YELLOW)
                 sys.stdout.write("Exiting...\n")
                 stream.closed = True
-
                 break
             #print("final")
         else:
@@ -280,6 +288,65 @@ def listen_print_loop(rid, responses: object, stream: object) -> None:
                 sys.stdout.write(RED)
                 sys.stdout.write("\033[K")
                 sys.stdout.write(str(corrected_time) + ": " + transcript + "\r")
-            pub.sendMessage("partial_stream", data=(transcript, corrected_time, tid, rid))
+
             stream.last_transcript_was_final = False
 
+
+def main() -> None:
+    """start bidirectional streaming from microphone input to speech API"""
+    client = speech.SpeechClient()
+    config = speech.RecognitionConfig(
+        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+        sample_rate_hertz=SAMPLE_RATE,
+        language_code="en-US",
+        max_alternatives=1,
+    )
+
+    streaming_config = speech.StreamingRecognitionConfig(
+        config=config, interim_results=True
+    )
+
+    mic_manager = ResumableMicrophoneStream(SAMPLE_RATE, CHUNK_SIZE)
+    print(mic_manager.chunk_size)
+    sys.stdout.write(YELLOW)
+    sys.stdout.write('\nListening, say "Quit" or "Exit" to stop.\n\n')
+    sys.stdout.write("End (ms)       Transcript Results/Status\n")
+    sys.stdout.write("=====================================================\n")
+
+    with mic_manager as stream:
+        while not stream.closed:
+            sys.stdout.write(YELLOW)
+            sys.stdout.write(
+                "\n" + str(STREAMING_LIMIT * stream.restart_counter) + ": NEW REQUEST\n"
+            )
+
+            stream.audio_input = []
+            audio_generator = stream.generator()
+
+            requests = (
+                speech.StreamingRecognizeRequest(audio_content=content)
+                for content in audio_generator
+            )
+
+            responses = client.streaming_recognize(streaming_config, requests)
+
+            # Now, put the transcription responses to use.
+            listen_print_loop(responses, stream)
+
+            if stream.result_end_time > 0:
+                stream.final_request_end_time = stream.is_final_end_time
+            stream.result_end_time = 0
+            stream.last_audio_input = []
+            stream.last_audio_input = stream.audio_input
+            stream.audio_input = []
+            stream.restart_counter = stream.restart_counter + 1
+
+            if not stream.last_transcript_was_final:
+                sys.stdout.write("\n")
+            stream.new_stream = True
+
+
+if __name__ == "__main__":
+    main()
+
+# [END speech_transcribe_infinite_streaming]

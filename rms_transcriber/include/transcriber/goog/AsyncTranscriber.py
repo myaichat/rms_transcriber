@@ -2,6 +2,9 @@ from colorama import Fore, Style
 import re
 import sys
 import time
+import wave
+import os
+
 from google.cloud import speech
 from pubsub import pub
 from ...config import init_config
@@ -16,6 +19,21 @@ RED = "\033[0;31m"
 GREEN = "\033[0;32m"
 YELLOW = "\033[0;33m"
 
+
+# Ensure a directory for audio chunks exists
+os.makedirs("audio_chunks", exist_ok=True)
+
+chunk_counter = 0  # Counter for unique file names
+
+def save_audio_chunk(item_id, audio_data, chunk_counter):
+    """Saves the audio data to a .wav file."""
+    file_name = f"audio_chunks/{item_id}.chunk_{chunk_counter}.wav"
+    with wave.open(file_name, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)  # Assuming 16-bit audio (pyaudio.paInt16)
+        wf.setframerate(SAMPLE_RATE)
+        wf.writeframes(audio_data)
+    print(f"Saved: {file_name}")
 
 def get_current_time() -> int:
     """Return Current Time in MS.
@@ -33,6 +51,7 @@ class AsyncTranscriber:
         
 
     async def listen_print_loop(self,rid, responses: object, stream: object) -> None:
+        global chunk_counter
         """Iterates through server responses and prints them.
 
         The responses passed is a generator that will block until a response
@@ -104,7 +123,18 @@ class AsyncTranscriber:
                         transcript = result.alternatives[2].transcript
                         sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
                         #pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
-            
+
+
+                if transcript.strip():  # Save non-empty transcripts 
+                    item_id= f'{tid}.{rid}'
+                    new_audio_data = b"".join(stream.audio_input[stream.last_saved_index:])
+                    save_audio_chunk(item_id, new_audio_data, chunk_counter)
+                    chunk_counter += 1
+
+                    # Update last_saved_index to current end of audio_input
+                    stream.last_saved_index = len(stream.audio_input)  
+
+
                 stream.is_final_end_time = stream.result_end_time
                 stream.last_transcript_was_final = True
                 tid += 1
