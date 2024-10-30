@@ -119,7 +119,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         """Calculate and adjust the size of the list box based on the content and LeftPanel width, with scroll check."""
         # Get the width of the LeftPanel (parent's parent in this case)
         text = text_item
-        try:
+        if 1:
             max_width = self.GetParent().GetSize().width - 75  # Padding to prevent overflow
 
             # Use a device context to measure the text size
@@ -172,8 +172,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
 
             # Set the size of the list box, limiting the width to max_width
             self.SetSize((max_width, adjusted_height))
-        except Exception as e:
-                print(str(e))   
+         
         # Refresh with wrapped content if necessary
         html_text = text.replace("\n", "<br>")
         formatted_text = f"""<span style="color: #2d2d2d; font-size: 14px; font-family: Arial, sans-serif;">{html_text}</span>"""        

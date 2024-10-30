@@ -92,16 +92,18 @@ class AsyncTranscriber:
                 sys.stdout.write("\033[K")
                 elapsed_time=stream.result_end_time -start_time
                 sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
-                #pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
+                pub.sendMessage("stream_closed2", data=(transcript, corrected_time, tid, rid))
                 await apc.transcriber.queue.put([transcript,'stream_closed', tid, rid])
+                print("FINAL:",transcript)
+                pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
                 if len(result.alternatives) > 1:
                     transcript = result.alternatives[1].transcript
                     sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
-                    pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
+                    #pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
                     if len(result.alternatives) > 2:
                         transcript = result.alternatives[2].transcript
                         sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
-                        pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
+                        #pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
             
                 stream.is_final_end_time = stream.result_end_time
                 stream.last_transcript_was_final = True
@@ -121,7 +123,7 @@ class AsyncTranscriber:
                 if 1:
                     sys.stdout.write(RED)
                     sys.stdout.write("\033[K")
-                    sys.stdout.write(str(corrected_time) + ": " + transcript + "\r")
+                    sys.stdout.write(str(corrected_time) + ": " + transcript[-100:] + "\r")
                 #pub.sendMessage("partial_stream", data=(transcript, corrected_time, tid, rid))
                 await apc.transcriber.queue.put([transcript,'partial_stream', tid, rid])
                 stream.last_transcript_was_final = False

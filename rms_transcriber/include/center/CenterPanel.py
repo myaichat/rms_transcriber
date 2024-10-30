@@ -6,11 +6,14 @@ import wx
 import wx.html2
 from urllib.parse import unquote
 from pubsub import pub
-
+from wxasync import WxAsyncApp, AsyncBind
 import markdown2
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
+from ..config import init_config
+apc = init_config.apc
+
 class AppLog_Controller():
     def __init__(self):
         self.set_log()
@@ -418,31 +421,37 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         ask_model_item = menu.Append(wx.ID_ANY, "Ask Model")
         
         # Bind the menu item to an action
-        self.Bind(wx.EVT_MENU, self.on_ask_model, ask_model_item)
+        #self.Bind(wx.EVT_MENU, self.on_ask_model, ask_model_item)
+        AsyncBind(wx.EVT_MENU, self.on_ask_model, self)   
+        self.ask_model_item_id = ask_model_item.GetId()
         
         # Show the context menu at the cursor position
         self.PopupMenu(menu)
         menu.Destroy()
-    def on_ask_model(self, event):
+    async def on_ask_model(self, event):
         # Use the selected text (stored when intercepted by on_navigating)
-        selected_text = getattr(self, 'selected_text', "No text selected")
-        
-        # Check if Ctrl key is pressed
-        if wx.GetKeyState(wx.WXK_CONTROL):
-            # Show an editable dialog if Ctrl is pressed
-            dialog = EditTextDialog(self, "Edit Selection", selected_text)
-            if dialog.ShowModal() == wx.ID_OK:
-                edited_text = dialog.GetEditedText()
-                print(f"Edited text: {edited_text}")
-                pub.sendMessage("ask_model", prompt=edited_text)
-                # Here you can handle the edited text (e.g., pass it to the model)
-            dialog.Destroy()
-        else:
-            # Default behavior when Ctrl is not pressed
-            print(f"Selected text for model: {selected_text}")
-            # Pass selected_text to your model for inference
-            pub.sendMessage("ask_model", prompt=selected_text)
-
+        if event.GetId() == self.ask_model_item_id:
+            selected_text = getattr(self, 'selected_text', "No text selected").strip()
+            
+            if not selected_text:
+                print(f"{self.__class__.__name__} : on_ask_model : No text selected")
+                return
+            # Check if Ctrl key is pressed
+            if wx.GetKeyState(wx.WXK_CONTROL):
+                # Show an editable dialog if Ctrl is pressed
+                dialog = EditTextDialog(self, "Edit Selection", selected_text)
+                if dialog.ShowModal() == wx.ID_OK:
+                    edited_text = dialog.GetEditedText()
+                    print(f"Edited text: {edited_text}")
+                    pub.sendMessage("ask_model", prompt=edited_text)
+                    # Here you can handle the edited text (e.g., pass it to the model)
+                dialog.Destroy()
+            else:
+                # Default behavior when Ctrl is not pressed
+                print(f"Selected text for model: {selected_text}")
+                # Pass selected_text to your model for inference
+                pub.sendMessage("ask_model", prompt=selected_text)
+                await apc.processor.run_stream_response(selected_text)  
 
     def on_navigating(self, event):
         url = event.GetURL()

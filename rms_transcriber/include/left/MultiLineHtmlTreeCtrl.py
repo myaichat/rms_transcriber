@@ -1,7 +1,7 @@
  
 import wx
 import wx.lib.agw.customtreectrl as CT
-from wx.lib.pubsub import pub
+from pubsub import pub
 import asyncio
 from wxasync import WxAsyncApp, AsyncBind
 from pprint import pprint as pp
@@ -29,7 +29,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         
         self.root = self.AddRoot("Root")
         pub.subscribe(self.on_test_populate, "test_populate")
-        #pub.subscribe(self.on_stream_closed, "stream_closed")
+        pub.subscribe(self.on_stream_closed, "stream_closed2")
         
         #pub.subscribe(self.on_partial_stream, "partial_stream")
 
@@ -77,9 +77,10 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
                 for data in self.content_buffer:
                     if data[0].strip():
                         if data[1]=='stream_closed':
-                            self.on_stream_closed(data)
+                            #self.on_stream_closed(data)
+                            print('11111: ON_STREAM_CLOSE--stream_close', data)
                         else:
-                            assert data[1]=='partial_stream', data[1]
+                            assert data[1]=='partial_stream', data
                             self.on_partial_stream(data)
                 self.content_buffer = [] # Clear buffer after update
             await asyncio.sleep(0.2)  # Update every 200ms
@@ -102,13 +103,16 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
 
     def on_stream_closed(self, data):
         transcript, corrected_time, tid, rid = data
+        print('on_stream_closed')
         if transcript.strip():  # Ensure there's content in the transcript
+            print('on_stream_closed:', transcript)
             #print('|'*80)
             #pp(transcript)
             #print('|'*80)
             item_id = f'{tid}:{rid}'
             wx.CallAfter(self.recreate_html_item,item_id, transcript)
     def recreate_html_item(self, item_id, transcript):
+        print('!!!!!!!!!!!!!! recreate_html_item', transcript) 
         # Check if the item exists
         if item_id in self.html_items:
             # Get the tree item and the existing HtmlListBox
@@ -130,6 +134,8 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             if apc.auto_scroll:
                 self.EnsureVisible(tree_item)
             return new_html_item
+        else:
+            print('Item ID not found in html_items', item_id, transcript)
 
     def _on_stream_closed(self, data):
         transcript, corrected_time, tid, rid = data
@@ -198,7 +204,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         rect = self.GetBoundingRect(item, textOnly=False)
         return rect.height
     def UpdateMultilineItem(self, item_id, parent, text_item, data=None):
-        self.Freeze()
+        #self.Freeze()
         assert item_id in self.html_items, f"Item ID {item_id} not found in html_items"
         
         # Access the HtmlListBox for the specific item
@@ -211,21 +217,20 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         html_item.adjust_size_to_fit_content(text_item)
         #html_item.text_item=text_item   
         #html_item.Update()  # Refresh the HtmlListBox
-        try:
+        if 1:
             html_item_height=html_item.GetSize().height
             tree_item_height=self.get_item_height(html_item.tree_item)
             if html_item_height*.9>tree_item_height :
                 #print('html_item_height:',html_item_height, 'tree_item_height:', tree_item_height)
             
-                
+                print('########   padding')
                 padded_text=text_item+' \n'*html_item.padding_cnt
                 new_html_item= self.recreate_html_item(item_id, padded_text)
                 new_html_item.is_recreated=True
                 new_html_item.SetItemCount(1) 
-        except Exception as e:
-            print(e)
+
              
-        self.Thaw()
+        #self.Thaw()
     
     def AppendMultilineItem(self, item_id, parent, text_item, data=None, pad_item=True):
         # Append an item with an empty string as the text

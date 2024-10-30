@@ -32,6 +32,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         self.content_buffer = []
         self.large_font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.SetFont(self.large_font)
+        pub.subscribe(self.on_stream_closed, "stream_closed2")
     def on_test_populate(self):
         #print('on_test_populate')
         #self.tree.DeleteAllItems()
@@ -58,7 +59,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
             #print('\n\tconsume_queue: ',content)
             #pub.sendMessage("display_response", response=content)  # Send the content to the WebView
             #wx.CallAfter(self.update_text, content)  # Update UI safely in the main thread
-            queue.task_done()
+            #queue.task_done()
             self.content_buffer.append(content  )
 
     async def update_tree_periodically(self):
@@ -73,8 +74,9 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                     if data[0].strip():
                         if data[1]=='stream_closed':
                             self.on_stream_closed(data)
+                            print('222222: ON_STREAM_CLOSE--stream_close', data)
                         else:
-                            assert data[1]=='partial_stream', data[1]
+                            assert data[1]=='partial_stream', data
                             self.on_partial_stream(data)
                 self.content_buffer = [] # Clear buffer after update
             await asyncio.sleep(0.2)  # Update every 200ms
@@ -85,7 +87,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
             #pp(transcript)
             #print('|'*80)
             item_id = f'{tid}:{rid}'
-            wx.CallAfter(self.UpdateMultilineItem,item_id, f'{item_id}, {transcript}')
+            wx.CallAfter(self.UpdateMultilineItem,item_id, f'{transcript}')
     def on_partial_stream(self, data):  
         transcript, corrected_time, tid, rid = data
         #print('on_partial_stream')
@@ -116,7 +118,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                 if word in text:
                     bold_font = wx.Font(base_font.GetPointSize(), base_font.GetFamily(),
                                         base_font.GetStyle(), wx.FONTWEIGHT_BOLD)
-                    self.SetItemText(item, text.replace(word, f"**{word}**"))  # Placeholder formatting
+                    self.SetItemText(item, text.replace(word, f"[{word}]"))  # Placeholder formatting
                     self.SetItemFont(item, bold_font)
                     item.is_bolded=True
         color_words = {"models": wx.Colour(0, 0, 255), "model": wx.Colour(255, 0, 0)}
@@ -143,7 +145,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         if apc.auto_scroll:
             self.EnsureVisible(item)               
         return item
-    def UpdateMultilineItem(self, item_id, new_text, new_data=None, max_line_length=47):
+    def UpdateMultilineItem(self, item_id, new_text, new_data=None, max_line_length=47):   
         # Check if item exists with the given item_id
         if item_id in self.html_items:
             item = self.html_items[item_id]
@@ -168,7 +170,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                     if word in multiline_text:
                         bold_font = wx.Font(base_font.GetPointSize(), base_font.GetFamily(),
                                             base_font.GetStyle(), wx.FONTWEIGHT_BOLD)
-                        self.SetItemText(item, multiline_text.replace(word, f"**{word}**"))  # Placeholder formatting
+                        self.SetItemText(item, multiline_text.replace(word, f"[{word}]"))  # Placeholder formatting
                         self.SetItemFont(item, bold_font)
             color_words = {"models": wx.Colour(0, 0, 255), "model": wx.Colour(255, 0, 0)}
             if color_words:
@@ -179,7 +181,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                 self.EnsureVisible(item)
             return item  # Return the updated item if needed
         else:
-            print(f"Item with ID {item_id} not found.")
+            print(f"{self.__class__.__name__} : UpdateMultilineItem : Item with ID {item_id} not found.")
             return None   
     def OnButtonClicked(self, event, item_text):
         # Display the message with the embedded item text
@@ -315,8 +317,8 @@ class TranscriptionTreePanel(wx.Panel):
         sizer.Add(self.tree, 1, wx.EXPAND)
         self.SetSizer(sizer)
         self.Layout()
-        pub.subscribe(self.on_test_populate, "test_populate") 
-        pub.subscribe(self.on_stream_closed, "stream_closed")  
+        #pub.subscribe(self.on_test_populate, "test_populate") 
+        #pub.subscribe(self.on_stream_closed, "stream_closed")  
         #pub.subscribe(self.on_ask_model_event, "ask_model")
       
     def  _on_stream_closed(self, data):
