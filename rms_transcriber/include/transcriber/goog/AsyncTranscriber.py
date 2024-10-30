@@ -94,7 +94,7 @@ class AsyncTranscriber:
                 sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
                 pub.sendMessage("stream_closed2", data=(transcript, corrected_time, tid, rid))
                 await apc.transcriber.queue.put([transcript,'stream_closed', tid, rid])
-                print("FINAL:",transcript)
+                #print("FINAL:",transcript)
                 pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
                 if len(result.alternatives) > 1:
                     transcript = result.alternatives[1].transcript

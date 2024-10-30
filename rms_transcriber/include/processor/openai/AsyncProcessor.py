@@ -5,6 +5,9 @@ from pprint import pprint as pp
 
 from wxasync import WxAsyncApp, AsyncBind #, Start
 from colorama import Fore, Style
+from ...config import init_config
+apc = init_config.apc
+
 class AsyncProcessor:
     def __init__(self, queue):
         self.queue = queue
@@ -19,8 +22,9 @@ class AsyncProcessor:
         # Create a chat completion request with streaming enabled
         #pp(conversation_history)
         #pp(ch)  
+        assert apc.processor_model_name
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=apc.processor_model_name,
             #model="gpt-3.5-turbo",
             messages=ch, 
 

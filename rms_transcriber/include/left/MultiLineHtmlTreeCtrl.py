@@ -77,8 +77,9 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
                 for data in self.content_buffer:
                     if data[0].strip():
                         if data[1]=='stream_closed':
+                            pass
                             #self.on_stream_closed(data)
-                            print('11111: ON_STREAM_CLOSE--stream_close', data)
+                            #print('11111: ON_STREAM_CLOSE--stream_close', data)
                         else:
                             assert data[1]=='partial_stream', data
                             self.on_partial_stream(data)
@@ -103,16 +104,16 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
 
     def on_stream_closed(self, data):
         transcript, corrected_time, tid, rid = data
-        print('on_stream_closed')
+        #print('on_stream_closed')
         if transcript.strip():  # Ensure there's content in the transcript
-            print('on_stream_closed:', transcript)
+            #print('on_stream_closed:', transcript)
             #print('|'*80)
             #pp(transcript)
             #print('|'*80)
             item_id = f'{tid}:{rid}'
             wx.CallAfter(self.recreate_html_item,item_id, transcript)
     def recreate_html_item(self, item_id, transcript):
-        print('!!!!!!!!!!!!!! recreate_html_item', transcript) 
+        #print('!!!!!!!!!!!!!! recreate_html_item', transcript) 
         # Check if the item exists
         if item_id in self.html_items:
             # Get the tree item and the existing HtmlListBox
@@ -223,7 +224,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             if html_item_height*.9>tree_item_height :
                 #print('html_item_height:',html_item_height, 'tree_item_height:', tree_item_height)
             
-                print('########   padding')
+                #print('########   padding')
                 padded_text=text_item+' \n'*html_item.padding_cnt
                 new_html_item= self.recreate_html_item(item_id, padded_text)
                 new_html_item.is_recreated=True

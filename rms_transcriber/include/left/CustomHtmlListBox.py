@@ -40,6 +40,8 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         pub.subscribe(self.on_resize, "panel_resize")
 
     async def on_double_click(self, event):
+        if wx.GetKeyState(wx.WXK_CONTROL):
+            print("Ctrl + Double click in HtmlListBox")
         if self.single_click_delayed:
             self.single_click_delayed.Stop()
             self.single_click_delayed = None        
@@ -49,7 +51,8 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         if 1:
             # Get the selected row index and the data in the row
             pub.sendMessage("ask_model", prompt=self.text_item)
-            await self.ask_model(self.text_item)   
+            if not wx.GetKeyState(wx.WXK_CONTROL):
+                await self.ask_model(self.text_item)   
     async  def ask_model(self, prompt):
         #assert prompt.strip()
         #print(8888, 'ask_model', prompt)

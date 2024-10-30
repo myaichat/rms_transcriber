@@ -74,7 +74,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                     if data[0].strip():
                         if data[1]=='stream_closed':
                             self.on_stream_closed(data)
-                            print('222222: ON_STREAM_CLOSE--stream_close', data)
+                            #print('222222: ON_STREAM_CLOSE--stream_close', data)
                         else:
                             assert data[1]=='partial_stream', data
                             self.on_partial_stream(data)

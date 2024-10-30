@@ -159,7 +159,7 @@ class AppLog_Controller():
         self.web_view.RunScript(f"replaceLogContent(`{sanitized_content}`);")
     def replace_header(self, content):
         # Use JavaScript to replace content in the header row
-        sanitized_content = content.replace("`", "\\`")  # Escape backticks for JavaScript
+        sanitized_content = content.replace("`", "\\`")+f' [{apc.processor_model_name}]'  # Escape backticks for JavaScript
         self.web_view.RunScript(f"replaceHeader(`{sanitized_content}`);")
     def append_log_content(self, content):
         # Use JavaScript to append content to the single row
@@ -362,38 +362,83 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         back_button.SetFont(font)           
         self.back_button.SetForegroundColour(wx.Colour(0, 0, 255))  # Blue for active state
         self.disable_back()
-     
+        if 1:
 
-        # Add a spacer to push the "Forward" button to the far right
-        #nav_sizer.AddStretchSpacer(1)
-        self.ask_model_text = wx.TextCtrl(self.nav_panel, style=wx.TE_MULTILINE)
-        self.ask_model_text.SetMinSize((200, 60))  # Set width and height as needed
+            # Add a spacer to push the "Forward" button to the far right
+            #nav_sizer.AddStretchSpacer(1)
+            self.ask_model_text = wx.TextCtrl(self.nav_panel, style=wx.TE_MULTILINE)
+            self.ask_model_text.SetMinSize((200, 60))  # Set width and height as needed
+            
+            nav_sizer.Add(self.ask_model_text, 1, wx.EXPAND | wx.ALL, 5)   
+            font = self.ask_model_text.GetFont()
+            font.SetPointSize(11)  # Adjust the size as desired
+            self.ask_model_text.SetFont(font)
+            self.ask_model_text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        if 1:
         
-        nav_sizer.Add(self.ask_model_text, 1, wx.EXPAND | wx.ALL, 5)        
-        v_sizer = wx.BoxSizer(wx.VERTICAL)
-        # Forward Button
-        self.forward_button=forward_button = wx.StaticText(self.nav_panel, label="Forward")
+            self.ask_model_button = wx.Button(self.nav_panel, label="Ask Model")
+            self.ask_model_button.SetBackgroundColour(wx.Colour(211, 211, 211))  # Green for ON state
+            #self.ask_model_button.Bind(wx.EVT_BUTTON, self.on_ask_model_button)
+            AsyncBind (wx.EVT_BUTTON, self.on_ask_model_button, self)
+            self.ask_model_button.SetMinSize(wx.Size(-1, 80))
+            nav_sizer.Add(self.ask_model_button, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)  # Add to the sizer
+            
+
+        if 1:
+            self.model_names = ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4o", ]  # Populate with actual model names
+            self.model_dropdown = wx.Choice(self.nav_panel, choices=self.model_names)
+            self.model_dropdown.SetSelection(0)  # Set the default selection
+            apc.processor_model_name = self.model_names[0]  # Set the default model name
+            nav_sizer.Add(self.model_dropdown, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)  # Add to the sizer
+            self.model_dropdown.Bind(wx.EVT_CHOICE, self.on_model_selection)
+
+        if 1:     
+            v_sizer = wx.BoxSizer(wx.VERTICAL)
+            # Forward Button
+            self.forward_button=forward_button = wx.StaticText(self.nav_panel, label="Forward")
 
 
-        forward_button.Bind(wx.EVT_LEFT_DOWN, self.on_forward)
-        v_sizer.Add(forward_button, 0, wx.ALL, 5)  # Removed wx.ALIGN_RIGHT
-        font = forward_button.GetFont()
-        font.SetPointSize(12)  # Set to desired font size
-        forward_button.SetFont(font)  
+            forward_button.Bind(wx.EVT_LEFT_DOWN, self.on_forward)
+            v_sizer.Add(forward_button, 0, wx.ALL, 5)  # Removed wx.ALIGN_RIGHT
+            font = forward_button.GetFont()
+            font.SetPointSize(12)  # Set to desired font size
+            forward_button.SetFont(font)  
 
-        # Add padding to the top to remove the visible line
-        #self.nav_panel.SetMinSize((-1, 25))  # Adjust height to fit the links with some padding
-        self.color_square = wx.StaticText(self.nav_panel, label="  ", size=(20, 20))  # A blank label to act as a "square"
-        self.color_square.SetBackgroundColour(wx.Colour(144, 238, 144))  # Start with green color
-        self.is_processing = False  # Flag to track processing state
-        v_sizer.Add(self.color_square, 0, wx.ALL , 5)
-        nav_sizer.Add(v_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            # Add padding to the top to remove the visible line
+            #self.nav_panel.SetMinSize((-1, 25))  # Adjust height to fit the links with some padding
+            self.color_square = wx.StaticText(self.nav_panel, label="  ", size=(20, 20))  # A blank label to act as a "square"
+            self.color_square.SetBackgroundColour(wx.Colour(144, 238, 144))  # Start with green color
+            self.is_processing = False  # Flag to track processing state
+            v_sizer.Add(self.color_square, 0, wx.ALL , 5)
+            nav_sizer.Add(v_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         self.nav_panel.SetSizer(nav_sizer)
         self.disable_forward()        
         # Optionally remove the border from WebView too
         self.web_view.SetWindowStyle(wx.NO_BORDER)   
         pub.subscribe(self.on_flip_colors, "ask_model")   
         #pub.subscribe(self.on_done_processing, "done_display")
+    def on_key_down(self, event):
+        # Check if Ctrl is pressed with Enter
+        if event.ControlDown() and event.GetKeyCode() == wx.WXK_RETURN:
+            self.on_ctrl_enter()  # Call your specific function for Ctrl+Enter
+        else:
+            event.Skip()  # Ensure other keys work as expected
+
+    # Define the function to execute when Ctrl+Enter is pressed
+    def on_ctrl_enter(self):
+        # Replace with the desired action when Ctrl+Enter is pressed
+        print("Ctrl+Enter was pressed")     
+        asyncio.create_task(self.on_ask_model_button(None))
+    async def on_ask_model_button(self, event):
+        prompt = self.ask_model_text.GetValue()
+        #pub.sendMessage("ask_model", prompt=prompt)
+        self.flip_colors()
+        await apc.processor.run_stream_response(prompt) 
+    def on_model_selection(self, event):
+        """Handles the selection change in the model dropdown."""
+        selected_model = self.model_dropdown.GetStringSelection()
+        apc.processor_model_name = selected_model  # Update the selected model name
+
     def on_flip_colors(self, prompt):
         self.flip_colors()
     def on_done_processing(self, prompt):
