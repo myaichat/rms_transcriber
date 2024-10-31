@@ -2,8 +2,8 @@
 import wx
 import asyncio
 from pubsub import pub
-from .left.LeftPanel import LeftPanel
-from .center.CenterPanel import CenterPanel
+from ..left.goog.LeftPanel import LeftPanel
+from ..center.CenterPanel import CenterPanel
 
 class RMSFrame(wx.Frame):
     def __init__(self, title, size):

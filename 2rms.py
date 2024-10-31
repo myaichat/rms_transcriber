@@ -1,20 +1,20 @@
-import wx
+import re
+import sys
 import asyncio
-import wx.html
-from wxasync import WxAsyncApp
+import wx
+import wx.html2
+from urllib.parse import unquote
 from pubsub import pub
-from pprint import pprint as pp
-from rms_transcriber import  asai_AsyncRecognizer
-from rms_transcriber import  AsyncProcessor
-#from rms_transcriber import goog_BidirectionalStreamer as BidirectionalStreamer
-from rms_transcriber import asai_BidirectionalStreamer as BidirectionalStreamer
-#from rms_transcriber import vosk_BidirectionalStreamer as BidirectionalStreamer
-#from rms_transcriber import RMSFrame   
-#from rms_transcriber import vosk_AsyncTranscriber as    AsyncTranscriber
-from rms_transcriber import asai_AsyncTranscriber as    AsyncTranscriber
-#from rms_transcriber import vosk_RMSFrame    as RMSFrame
-from rms_transcriber import asai_RMSFrame    as RMSFrame
+from wxasync import WxAsyncApp, AsyncBind, StartCoroutine
+import markdown2
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 from concurrent.futures import ThreadPoolExecutor
+from rms_transcriber import  AsyncProcessor
+from rms_transcriber import  asai_AsyncRecognizer #goog_AsyncRecognizer , vosk_AsyncRecognizer,
+from rms_transcriber import asai_AsyncTranscriber as    AsyncTranscriber
+from rms_transcriber import asai_BidirectionalStreamer as BidirectionalStreamer
 from rms_transcriber import apc
 
 apc.processor   = None
@@ -25,7 +25,37 @@ async def run_streaming_in_executor():
     loop = asyncio.get_running_loop()
     with ThreadPoolExecutor() as executor:
         await loop.run_in_executor(executor, streamer.StartStreaming)
+        
+from rms_transcriber.include.center.CenterPanel import CenterPanel
 
+from rms_transcriber.include.left.asai.LeftPanel import LeftPanel        
+
+class _RMSFrame(wx.Frame):
+    def __init__(self, title, size):
+        super(RMSFrame, self).__init__(None, title=title, 
+                                           size=size)
+        #panel= wx.Panel(self)
+        splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE)
+        self.left_panel = LeftPanel(splitter)
+        #self.tree = MultiLineHtmlTreeCtrl(panel, size=(380, 480))
+
+        self.center_panel = CenterPanel(splitter)   
+
+        # Split the main splitter window vertically between the left and right notebooks
+        splitter.SplitVertically(self.left_panel, self.center_panel)
+        splitter.SetSashGravity(0.5)  # Set initial split at 50% width for each side
+        splitter.SetMinimumPaneSize(400)  # Minimum pane width to prevent collapsing
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(splitter, 1, wx.EXPAND)
+        #sizer.Add(self.button, 0, wx.CENTER | wx.ALL, 5)
+        #sizer.Add(self.abutton, 0, wx.CENTER | wx.ALL, 5)
+        #panel.SetSizer(sizer)
+        self.content_buffer = ""
+        self.Layout()
+        
+from rms_transcriber.include.frame.asai_RMSFrame import RMSFrame     
+apc.mock=False
+apc.processor_model_name=None
 class SelectionDialog(wx.Dialog):
     def __init__(self, parent, title="Select Option"):
         super().__init__(parent, title=title, size=(300, 200))
@@ -77,13 +107,6 @@ class SelectionDialog(wx.Dialog):
 
     def on_cancel(self, event):
         self.EndModal(wx.ID_CANCEL)
-
-
-
-
-apc.mock=False
-apc.processor_model_name=None
-
 async def show_selection_dialog():
     """Function to show the selection dialog and wait for the user response."""
     dialog = SelectionDialog(None, "Choose an option")
@@ -175,43 +198,51 @@ def _long_running_process(q):
             # Handle the case where no message was received within the timeout
             continue
 
-
+async def main():
+    app = WxAsyncApp() 
+    frame = RMSFrame( title="RMS Transcribe for Google Speech", size=(1200, 1000))
+    frame.Show()
+    await app.MainLoop()
 async def main():
     apc.askmodel_queue = asyncio.Queue()
     apc.trans_queue = asyncio.Queue()
     apc.recog_queue = asyncio.Queue()
     app = WxAsyncApp()  # Use WxAsyncApp for async compatibility
-    user_selection = await show_selection_dialog()
-    apc.transcription_lang = user_selection
-    if user_selection is None:
-        print("Exiting app as dialog was canceled.")
-        return  # Exit if the dialog is canceled    
-    #Resumable Microphone Streaming 
+    if 1:
+        user_selection = await show_selection_dialog()
+        apc.transcription_lang = user_selection
+        if user_selection is None:
+            print("Exiting app as dialog was canceled.")
+            return  # Exit if the dialog is canceled    
+        #Resumable Microphone Streaming 
     frame = RMSFrame(  title="RMS Transcribe for Google Speech", size=(1200, 1000))
     #frame.SetSize((1200, 1000)) 
     frame.Show()
     frame.CenterOnScreen()
+    
     apc.processor = AsyncProcessor(apc.askmodel_queue)
+    
     apc.transcriber = AsyncTranscriber(apc.trans_queue)
+    
     #apc.goog_recognizer = goog_AsyncRecognizer(apc.recog_queue)
     apc.asai_recognizer = asai_AsyncRecognizer(apc.recog_queue)
     #apc.vosk_recognizer = vosk_AsyncRecognizer(apc.recog_queue)
     # Start the queue consumer task
+    if 1:
+        asyncio.create_task(run_streaming_in_executor())
+        asyncio.create_task(frame.center_panel.processor_panel.consume_askmodel_queue(apc.askmodel_queue))
+        #asyncio.create_task(apc.goog_recognizer.consume_recognizer_queue(apc.recog_queue))
+        #asyncio.create_task(apc.vosk_recognizer.consume_recognizer_queue(apc.recog_queue))
+        asyncio.create_task(apc.asai_recognizer.consume_recognizer_queue(apc.recog_queue))
+        if 1:
+            asyncio.create_task(frame.left_panel.tree.consume_transcription_queue())
+            asyncio.create_task(frame.left_panel.tree.update_tree_periodically())
+        if 0:
+            asyncio.create_task(frame.left_panel.tree_2.consume_transcription_queue())
+            asyncio.create_task(frame.left_panel.tree_2.update_tree_periodically())        
+        asyncio.create_task(frame.center_panel.processor_panel.update_webview_periodically())
 
-    asyncio.create_task(run_streaming_in_executor())
-    #asyncio.create_task(frame.center_panel.processor_panel.consume_askmodel_queue(apc.askmodel_queue))
-    #asyncio.create_task(apc.goog_recognizer.consume_recognizer_queue(apc.recog_queue))
-    #asyncio.create_task(apc.vosk_recognizer.consume_recognizer_queue(apc.recog_queue))
-    asyncio.create_task(apc.asai_recognizer.consume_recognizer_queue(apc.recog_queue))
-    if 0:
-        asyncio.create_task(frame.left_panel.tree.consume_transcription_queue())
-        asyncio.create_task(frame.left_panel.tree.update_tree_periodically())
-    if 0:
-        asyncio.create_task(frame.left_panel.tree_2.consume_transcription_queue())
-        asyncio.create_task(frame.left_panel.tree_2.update_tree_periodically())        
-    asyncio.create_task(frame.center_panel.processor_panel.update_webview_periodically())
-
-    if 0:        
+    if 1:        
         import threading
         apc.tanscribe_file_queue = queue.Queue()
         long_running_thread = threading.Thread(target=_long_running_process, args=(apc.tanscribe_file_queue,))
@@ -222,6 +253,5 @@ async def main():
                 #time.sleep(0.5)
           
     await app.MainLoop()  # Run the app's main loop asynchronously
-
 if __name__ == "__main__":
-    asyncio.run(main())  # Use asyncio.run() to start the main function   
+    asyncio.run(main())

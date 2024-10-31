@@ -301,6 +301,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         self.SetSizer(sizer)
         self.content_buffer = ""
         pub.subscribe(self.ask_model, "ask_model")
+        self.Layout()
     def ask_model(self, prompt):
         self.ask_model_text.SetValue(prompt)    
     async def consume_askmodel_queue(self, queue):
@@ -639,6 +640,8 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         self.web_view.SetPage(initial_html, "")
         tmp_file=self.save_html(initial_html)
         self.page_history.append(tmp_file)
+        print(333333, self.page_history)
+        #self.web_view.LoadURL(f"file://{tmp_file}")
 
 
     def _set_initial_content(self):

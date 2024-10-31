@@ -6,7 +6,7 @@ import asyncio
 from wxasync import WxAsyncApp, AsyncBind
 from pprint import pprint as pp
 #from rms_transcriber import apc
-from ..config import init_config
+from ...config import init_config
 apc = init_config.apc
 
 from .CustomHtmlListBox import CustomHtmlListBox
@@ -30,12 +30,21 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         self.root = self.AddRoot("Root")
         pub.subscribe(self.on_test_populate, "test_populate")
         pub.subscribe(self.on_stream_closed, "stream_closed2")
+        pub.subscribe(self.on_stream_recognized, "stream_recognized")
+        
         
         #pub.subscribe(self.on_partial_stream, "partial_stream")
 
         self.tid=0
         self.html_items={}
         self.content_buffer = []
+    def on_stream_recognized(self, data):
+        transcript, tid, rid = data
+        #print('on_stream_recognized')
+        if transcript.strip():
+            item_id=f'{tid}:{rid}'
+            self.on_append_recognized_stream( item_id, transcript)
+            #self.html_items[tid]=transcript
     def on_test_populate(self):
         #print('on_test_populate')
         #self.tree.DeleteAllItems()
@@ -63,7 +72,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             #print('\n\tconsume_queue: ',content)
             #pub.sendMessage("display_response", response=content)  # Send the content to the WebView
             #wx.CallAfter(self.update_text, content)  # Update UI safely in the main thread
-            #queue.task_done()
+            queue.task_done()
             self.content_buffer.append(content  )
 
     async def update_tree_periodically(self):
@@ -75,17 +84,36 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
                 #wx.CallAfter(self.update_text, self.content_buffer)
                 #print('-----------------------update_tree_periodically:',len(self.content_buffer))
                 for data in self.content_buffer:
+                    #print('update_HTML_TREE_periodically:', data)
+                    
                     if data[0].strip():
                         if data[1]=='stream_closed':
+                            self.is_stream_closed=True
                             pass
                             #self.on_stream_closed(data)
                             #print('11111: ON_STREAM_CLOSE--stream_close', data)
-                        else:
-                            assert data[1]=='partial_stream', data
+                        elif data[1]=='partial_stream':
+                            
                             self.on_partial_stream(data)
+                        else:
+                            assert data[1]=='stream_recognized', data
+                            
+                            transcript, _, tid, rid = data
+                            item_id=f'{tid}:{rid}'
+                            self.on_append_recognized_stream(item_id, transcript)
                 self.content_buffer = [] # Clear buffer after update
             await asyncio.sleep(0.2)  # Update every 200ms
-
+    def on_append_recognized_stream(self, item_id, transcript):
+        #print('wwwwwwwwwwwwww on_append_recognized_stream', transcript)
+        if transcript.strip():
+            html_item=self.html_items[item_id]
+            
+            tree_item=self.html_items[item_id].tree_item
+            recog_item_id=f'{item_id}:{html_item.recorg_count}'
+            print(html_item.recorg_count)
+            parent1 = self.AppendMultilineItem(recog_item_id, tree_item, transcript, pad_item=False)
+            html_item.recorg_count += 1
+            self.ExpandAll()  # Expanding within the main thread  
     def on_partial_stream(self, data):  
         transcript, corrected_time, tid, rid = data
         #print('on_partial_stream')
@@ -94,8 +122,8 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             item_id=f'{tid}:{rid}'
             #self.html_items[tid]=transcript
             if item_id in self.html_items:
-                
-                wx.CallAfter( self.update_tree_with_transcript,item_id, f'{item_id}, {transcript}')
+                if not self.html_items[item_id].is_stream_closed:   
+                    wx.CallAfter( self.update_tree_with_transcript,item_id, f'{item_id}, {transcript}')
             else:
                 
                 wx.CallAfter(self.append_tree_with_transcript,item_id, f'{item_id}, {transcript}')       
@@ -111,12 +139,18 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             #pp(transcript)
             #print('|'*80)
             item_id = f'{tid}:{rid}'
-            wx.CallAfter(self.recreate_html_item,item_id, transcript)
+            wx.CallAfter(self.close_stream,item_id, transcript)
+    def close_stream(self,item_id, transcript):
+        new_html_item=self.recreate_html_item(item_id, transcript)
+        if new_html_item:
+            new_html_item.is_stream_closed=True
+        
     def recreate_html_item(self, item_id, transcript):
         #print('!!!!!!!!!!!!!! recreate_html_item', transcript) 
         # Check if the item exists
         if item_id in self.html_items:
             # Get the tree item and the existing HtmlListBox
+            
             tree_item = self.html_items[item_id].tree_item
             old_html_item = self.html_items[item_id]
             
@@ -129,7 +163,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             # Create a new HtmlListBox with the final transcription
             new_html_item = CustomHtmlListBox(self.tid, self, transcript, self, tree_item, size=(200, 80))
             self.html_items[item_id] = new_html_item  # Replace the old reference with the new one
-            
+              
             # Attach the new HtmlListBox to the tree item
             self.SetItemWindow(tree_item, new_html_item)
             if apc.auto_scroll:
@@ -237,6 +271,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         # Append an item with an empty string as the text
 
         # Create an instance of CustomHtmlListBox with specific items, passing tree control and item references
+        #print('AppendMultilineItem)', item_id, text_item)
         if  item_id not in self.html_items:
             item = self.AppendItem(parent, "")
             if data is not None:
@@ -261,6 +296,8 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
             if pad_item:
                 html_list_box.add_history_item(text_item)
             return item
+        else:
+            print('Item ID already exists:', item_id)
     def _AppendMultilineItem(self, item_id, parent, text_item, data=None):
         # Append an item with an empty string as the text
         if item_id not in self.html_items:

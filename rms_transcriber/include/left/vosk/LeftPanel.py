@@ -4,7 +4,7 @@ from wxasync import WxAsyncApp, AsyncBind
 from pubsub import pub
 from .MultiLineHtmlTreeCtrl import MultiLineHtmlTreeCtrl
 from .MultiLineTreeCtrl import MultiLineTreeCtrl
-from ..config import init_config
+from ...config import init_config
 apc = init_config.apc
 class LeftPanel(wx.Panel):
     def __init__(self, parent):
@@ -14,16 +14,16 @@ class LeftPanel(wx.Panel):
         if 1: 
             self.tree = MultiLineHtmlTreeCtrl(left_notebook)
             
-            left_notebook.AddPage(self.tree, "HtmlTree")
+            left_notebook.AddPage(self.tree, "V_HtmlTree")
         if 1:
             self.tree_2 = MultiLineTreeCtrl(left_notebook)
-            left_notebook.AddPage(self.tree_2, "Tree")        
+            left_notebook.AddPage(self.tree_2, "V_Tree")        
 
 
         
         #left_notebook.SetSelection(3)
 
-        self.button = wx.Button(self, label="Populate List")
+        self.button = wx.Button(self, label="Populate V  List")
         self.button.Bind(wx.EVT_BUTTON, self.on_button_click)
         if 0:
             self.auto_scroll_checkbox = wx.CheckBox(self, label="Auto Scroll")

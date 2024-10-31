@@ -67,7 +67,7 @@ class BidirectionalStreamer:
                 responses = client.streaming_recognize(streaming_config, requests)
 
 
-                asyncio.run( apc.transcriber.listen_print_loop(rid,responses, stream))
+                asyncio.run( apc.transcriber.transcribe(rid,responses, stream))
 
                 if stream.result_end_time > 0:
                     stream.final_request_end_time = stream.is_final_end_time

@@ -4,7 +4,7 @@ from pubsub import pub
 import asyncio
 from wxasync import AsyncBind
 from pprint import pprint as pp
-from ..config import init_config
+from ...config import init_config
 apc = init_config.apc
 
 class MultiLineTreeCtrl(CT.CustomTreeCtrl):
@@ -33,6 +33,14 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         self.large_font = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.SetFont(self.large_font)
         pub.subscribe(self.on_stream_closed, "stream_closed2")
+        pub.subscribe(self.on_stream_recognized, "stream_recognized")
+    def on_stream_recognized(self, data):
+        transcript, tid, rid = data
+        #print('on_stream_recognized')
+        if transcript.strip():
+            item_id=f'{tid}:{rid}'
+            self.on_append_recognized_stream( item_id, transcript)
+
     def on_test_populate(self):
         #print('on_test_populate')
         #self.tree.DeleteAllItems()
@@ -60,6 +68,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
             #pub.sendMessage("display_response", response=content)  # Send the content to the WebView
             #wx.CallAfter(self.update_text, content)  # Update UI safely in the main thread
             #queue.task_done()
+            queue.task_done()
             self.content_buffer.append(content  )
 
     async def update_tree_periodically(self):
@@ -75,11 +84,25 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
                         if data[1]=='stream_closed':
                             self.on_stream_closed(data)
                             #print('222222: ON_STREAM_CLOSE--stream_close', data)
-                        else:
-                            assert data[1]=='partial_stream', data
+                        elif data[1]=='partial_stream':
+                            
                             self.on_partial_stream(data)
+                        else:
+                            assert data[1]=='stream_recognized', data
+                            
+                            transcript, _, tid, rid = data
+                            item_id=f'{tid}:{rid}'
+                            #self.on_append_recognized_stream(item_id, transcript)
                 self.content_buffer = [] # Clear buffer after update
             await asyncio.sleep(0.2)  # Update every 200ms
+    def on_append_recognized_stream(self, item_id, transcript):
+        #print('111111111111111 on_append_recognized_stream', transcript)
+        if transcript.strip():
+            tree_item=self.html_items[item_id]
+            recog_item_id=f'{item_id}:{tree_item.recorg_count}'
+            parent1 = self.AppendMultilineItem(recog_item_id, tree_item, transcript)
+            self.ExpandAll()  # Expanding within the main thread 
+
     def on_stream_closed(self, data):
         transcript, corrected_time, tid, rid = data
         if transcript.strip():  # Ensure there's content in the transcript
@@ -111,6 +134,7 @@ class MultiLineTreeCtrl(CT.CustomTreeCtrl):
         item.is_colored=False
         item.is_bolded=False
         self.html_items[item_id]=item
+        item.recorg_count=0
         base_font = wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         bold_words = ["Apache", "Pyspark", "Oracle", "PL/SQL", "Hints", "Airflow", 'models', 'model']
         if bold_words:

@@ -5,7 +5,7 @@ import asyncio
 from pubsub import pub
 from pprint import pprint as pp
 from wxasync import WxAsyncApp, AsyncBind
-from ..config import init_config
+from ...config import init_config
 apc = init_config.apc
 class CustomHtmlListBox(wx.html.HtmlListBox):
     def __init__(self, tid, parent, text_item, tree_ctrl, tree_item, id=wx.ID_ANY, size=(200, 180)):
@@ -25,6 +25,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         #self.SetBackgroundColour(wx.Colour(211, 211, 211))
         self.padding_cnt=5
         self.is_recreated=False
+        self.recorg_count=0
         # Remove the border by setting a simple style
         self.SetWindowStyleFlag(wx.BORDER_NONE)
         self.Bind(wx.EVT_SET_FOCUS, self.on_focus)
@@ -38,6 +39,7 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         self.Bind(wx.EVT_SCROLLWIN_LINEUP, self.on_scroll)
         self.Bind(wx.EVT_SCROLLWIN_LINEDOWN, self.on_scroll)
         pub.subscribe(self.on_resize, "panel_resize")
+        self.is_stream_closed=False
 
     async def on_double_click(self, event):
         if wx.GetKeyState(wx.WXK_CONTROL):

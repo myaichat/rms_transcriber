@@ -28,12 +28,22 @@ chunk_counter = 0  # Counter for unique file names
 def save_audio_chunk(item_id, audio_data, chunk_counter):
     """Saves the audio data to a .wav file."""
     file_name = f"audio_chunks/{item_id}.chunk_{chunk_counter}.wav"
+    if os.path.exists(file_name):
+        os.remove(file_name)
+        #print(f"Deleted existing file: {file_name}")
+
     with wave.open(file_name, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)  # Assuming 16-bit audio (pyaudio.paInt16)
         wf.setframerate(SAMPLE_RATE)
         wf.writeframes(audio_data)
+       
+    num_frames = len(audio_data) // (2 * 1)  # audio_data length in bytes, 2 bytes per sample, 1 channel
+    duration = num_frames / SAMPLE_RATE  # Duration in seconds   
     print(f"Saved: {file_name}")
+    print(f"Audio Duration: {duration:.2f} seconds")
+    
+    return file_name, duration
 
 def get_current_time() -> int:
     """Return Current Time in MS.
@@ -50,7 +60,7 @@ class AsyncTranscriber:
         
         
 
-    async def listen_print_loop(self,rid, responses: object, stream: object) -> None:
+    async def transcribe(self,rid, responses: object, stream: object) -> None:
         global chunk_counter
         """Iterates through server responses and prints them.
 
@@ -111,25 +121,36 @@ class AsyncTranscriber:
                 sys.stdout.write("\033[K")
                 elapsed_time=stream.result_end_time -start_time
                 sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
-                pub.sendMessage("stream_closed2", data=(transcript, corrected_time, tid, rid))
-                await apc.transcriber.queue.put([transcript,'stream_closed', tid, rid])
-                #print("FINAL:",transcript)
-                pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
-                if len(result.alternatives) > 1:
-                    transcript = result.alternatives[1].transcript
-                    sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
+                if transcript.strip():
+                    pub.sendMessage("stream_closed2", data=(transcript, corrected_time, tid, rid))
+                    await apc.trans_queue.put([transcript,'stream_closed', tid, rid])
+                    #stream.last_saved_index = len(stream.audio_input) 
+                    #print("FINAL:",transcript)
                     #pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
-                    if len(result.alternatives) > 2:
-                        transcript = result.alternatives[2].transcript
+                    if len(result.alternatives) > 1:
+                        transcript = result.alternatives[1].transcript
                         sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
                         #pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
-
+                        if len(result.alternatives) > 2:
+                            transcript = result.alternatives[2].transcript
+                            sys.stdout.write(str(elapsed_time)+ ": "+str(tid)  + ": "+str(corrected_time) + ": " + transcript + "\n")
+                            #pub.sendMessage("stream_closed", data=(transcript, corrected_time, tid, rid))
+                else:
+                    print("Empty transcript")
+                    stream.last_saved_index = len(stream.audio_input)
 
                 if transcript.strip():  # Save non-empty transcripts 
                     item_id= f'{tid}.{rid}'
                     new_audio_data = b"".join(stream.audio_input[stream.last_saved_index:])
-                    save_audio_chunk(item_id, new_audio_data, chunk_counter)
+                    file_name, duration=save_audio_chunk(item_id, new_audio_data, chunk_counter)
+                    print(len(stream.audio_input),len(stream.audio_input[stream.last_saved_index:]), stream.last_saved_index)
+                    stream.last_saved_index = len(stream.audio_input)  
+                    
                     chunk_counter += 1
+                    if duration <60:
+                        await apc.recog_queue.put([file_name,tid, rid])
+                    else:
+                        print(f"Audio duration too long: {duration:.2f} seconds")
 
                     # Update last_saved_index to current end of audio_input
                     stream.last_saved_index = len(stream.audio_input)  
@@ -150,10 +171,13 @@ class AsyncTranscriber:
                     break
                 #print("final")
             else:
-                if 1:
+                if transcript.strip( ):
                     sys.stdout.write(RED)
                     sys.stdout.write("\033[K")
                     sys.stdout.write(str(corrected_time) + ": " + transcript[-100:] + "\r")
-                #pub.sendMessage("partial_stream", data=(transcript, corrected_time, tid, rid))
-                await apc.transcriber.queue.put([transcript,'partial_stream', tid, rid])
-                stream.last_transcript_was_final = False
+                    #pub.sendMessage("partial_stream", data=(transcript, corrected_time, tid, rid))
+                    await apc.trans_queue.put([transcript,'partial_stream', tid, rid])
+                    stream.last_transcript_was_final = False
+                else:
+                    print("Empty partial transcript")
+                    #stream.last_saved_index = len(stream.audio_input)   
