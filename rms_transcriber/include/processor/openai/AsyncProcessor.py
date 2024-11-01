@@ -11,28 +11,27 @@ apc = init_config.apc
 class AsyncProcessor:
     def __init__(self, queue):
         self.queue = queue
-        self.panel_name=None
-        self.client= openai.OpenAI()
+        #self.client= openai.OpenAI()
         self.conversation_history=[]
 
     async def run_stream_response(self, prompt):
        
-        ch, client=self.conversation_history, self.client
+        ch=self.conversation_history
+        client= openai.OpenAI()
         #ch=[]
         ch.append({"role": "user", "content": prompt})
         # Create a chat completion request with streaming enabled
         #pp(conversation_history)
-        pp(ch)  
-        pp(apc.processor_model_name)
+        #pp(ch)  
+        print('MODEL:', apc.processor_model_name)
         assert apc.processor_model_name
-        assert self.panel_name
-        response = client.chat.completions.create(
-            model=apc.processor_model_name[self.panel_name],
-            #model="gpt-3.5-turbo",
-            messages=ch, 
+        if 1:
+            response = client.chat.completions.create(
+                model=apc.processor_model_name,
+                messages=ch, 
+                stream=True
+            )
 
-            stream=True
-        )
 
         # Print each response chunk as it arrives
         out=[]
