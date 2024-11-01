@@ -23,7 +23,7 @@ class AppLog_Controller():
         self.page_forward=[]
         #pub.subscribe(self.on_log, "applog")
         pub.subscribe(self.done_display, "done_display")
-        pub.subscribe(self.display_response, "display_response")
+        #pub.subscribe(self.display_response, "display_response")
         pub.subscribe(self.set_header, "set_header")
         pub.subscribe(self.on_page_back, "back")
         pub.subscribe(self.on_page_forward, "forward")  
@@ -305,7 +305,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         self.listen_on=False
     def ask_model(self, prompt):
         self.ask_model_text.SetValue(prompt)    
-    async def consume_askmodel_queue(self, queue):
+    async def consume_question_queue(self, queue):
         # Continuously consume the queue and update WebView
         while True:
             content = await queue.get()
@@ -318,7 +318,8 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         while True:
             if self.content_buffer:
                 #print('ProcessorPanel', self.content_buffer)
-                pub.sendMessage("display_response", response=self.content_buffer)
+                #pub.sendMessage("display_response", response=self.content_buffer)
+                self.display_response(self.content_buffer)
                 #wx.CallAfter(self.update_text, self.content_buffer)
                 self.content_buffer = ""  # Clear buffer after update
             await asyncio.sleep(0.2)  # Update every 200ms        
@@ -466,7 +467,8 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         prompt = self.ask_model_text.GetValue()
         #pub.sendMessage("ask_model", prompt=prompt)
         self.flip_colors()
-        await apc.processor.run_stream_response(prompt) 
+        self.display_response(f'<h3>{prompt}</h3>')
+        await apc.question_processor.run_stream_response(prompt) 
     def on_model_selection(self, event):
         """Handles the selection change in the model dropdown."""
         selected_model = self.model_dropdown.GetStringSelection()
@@ -538,7 +540,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
                 print(f"Selected text for model: {selected_text}")
                 # Pass selected_text to your model for inference
                 pub.sendMessage("ask_model", prompt=selected_text)
-                await apc.processor.run_stream_response(selected_text)  
+                await apc.question_processor.run_stream_response(selected_text)  
 
     def on_navigating(self, event):
         url = event.GetURL()
@@ -631,9 +633,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         </head>
         <body>
             <table id="log-table">
-                <tr id="header-row">
-                    <td id="header-cell">Start Speaking</td>
-                </tr>
+           
                 <tr><td><hr></td></tr>
                 <tr id="log-row">
                     <td id="log-cell"></td>
@@ -724,7 +724,7 @@ class RightPanel(wx.Panel):
         
         self.processor_panel = ProcessorPanel(center_notebook)
         
-        center_notebook.AddPage(self.processor_panel, "Processor")
+        center_notebook.AddPage(self.processor_panel, "Questions")
 
 
         

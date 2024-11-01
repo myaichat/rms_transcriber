@@ -466,6 +466,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         prompt = self.ask_model_text.GetValue()
         #pub.sendMessage("ask_model", prompt=prompt)
         self.flip_colors()
+        self.display_response(f'<h3>{prompt}</h3>')
         await apc.processor.run_stream_response(prompt) 
     def on_model_selection(self, event):
         """Handles the selection change in the model dropdown."""

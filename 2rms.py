@@ -220,6 +220,7 @@ async def main():
     await app.MainLoop()
 async def main():
     apc.askmodel_queue = asyncio.Queue()
+    apc.question_queue = asyncio.Queue()
     apc.trans_queue = asyncio.Queue()
     apc.recog_queue = asyncio.Queue()
     app = WxAsyncApp()  # Use WxAsyncApp for async compatibility
@@ -236,6 +237,7 @@ async def main():
     frame.CenterOnScreen()
     
     apc.processor = AsyncProcessor(apc.askmodel_queue)
+    apc.question_processor = AsyncProcessor(apc.question_queue)
     
     apc.transcriber = AsyncTranscriber(apc.trans_queue)
     
@@ -246,6 +248,7 @@ async def main():
     if 1:
         asyncio.create_task(run_streaming_in_executor())
         asyncio.create_task(frame.processor_panel.left_panel.processor_panel.consume_askmodel_queue(apc.askmodel_queue))
+        asyncio.create_task(frame.processor_panel.right_panel.processor_panel.consume_question_queue(apc.question_queue))
         #asyncio.create_task(apc.goog_recognizer.consume_recognizer_queue(apc.recog_queue))
         #asyncio.create_task(apc.vosk_recognizer.consume_recognizer_queue(apc.recog_queue))
         asyncio.create_task(apc.asai_recognizer.consume_recognizer_queue(apc.recog_queue))
@@ -256,6 +259,7 @@ async def main():
             asyncio.create_task(frame.left_panel.tree_2.consume_transcription_queue())
             asyncio.create_task(frame.left_panel.tree_2.update_tree_periodically())        
         asyncio.create_task(frame.processor_panel.left_panel.processor_panel.update_webview_periodically())
+        asyncio.create_task(frame.processor_panel.right_panel.processor_panel.update_webview_periodically())
 
     if 1:        
         import threading
