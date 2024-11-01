@@ -11,7 +11,7 @@ from .include.transcriber.vosk.BidirectionalStreamer import BidirectionalStreame
 from .include.transcriber.asai.BidirectionalStreamer import BidirectionalStreamer as asai_BidirectionalStreamer
 from .include.frame.goog_RMSFrame import RMSFrame as goog_RMSFrame
 from .include.frame.vosk_RMSFrame import RMSFrame as vosk_RMSFrame
-from .include.frame.asai_RMSFrame import RMSFrame as asai_RMSFrame
+from .include.frame.asai.asai_RMSFrame import RMSFrame as asai_RMSFrame
 
 # Initialize apc globally
 init_config.init(**{})  # Initialize the configuration
@@ -21,5 +21,5 @@ __all__ = [ 'apc','AsyncTranscriber','goog_BidirectionalStreamer',
            'vosk_BidirectionalStreamer', 'goog_AsyncTranscriber', 'vosk_AsyncTranscriber',  
            'goog_RMSFrame', 'AsyncProcessor','goog_AsyncRecognizer',  'asai_AsyncRecognizer',
            'asai_AsyncTranscriber', 'asai_RMSFrame', 'asai_BidirectionalStreamer'
-           'vosk_AsyncRecognizer', 'vosk_RMSFrame','asai_RMSFrame']
+           'vosk_AsyncRecognizer', 'vosk_RMSFrame']
 #pip install -e .
