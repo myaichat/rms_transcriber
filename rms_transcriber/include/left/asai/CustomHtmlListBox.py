@@ -52,19 +52,22 @@ class CustomHtmlListBox(wx.html.HtmlListBox):
         self.tree_ctrl.SelectItem(self.tree_item)
         if 1:
             # Get the selected row index and the data in the row
-            pub.sendMessage("ask_model", prompt=self.text_item)
+            #pub.sendMessage("ask_model", prompt=self.text_item)
             if not wx.GetKeyState(wx.WXK_CONTROL):
-                await self.ask_model(self.text_item)   
+                await self.ask_model(self.text_item)  
+            else:
+                pub.sendMessage("set_prompt", prompt=self.text_item) 
     async  def ask_model(self, prompt):
         #assert prompt.strip()
         #print(8888, 'ask_model', prompt)
         #print(8888, 'self.formatted_item', self.formatted_item)
-        pub.sendMessage("set_header", msg=prompt)
+        #pub.sendMessage("set_header", msg=prompt)
         
         if apc.mock:
             await self.mock_stream_response(prompt) 
         else:
-            await apc.processor.run_stream_response(prompt)            
+            #await apc.processor.run_stream_response(prompt)  
+            pub.sendMessage("ask_model", prompt=prompt)
 
     async def mock_stream_response(self, prompt):
         """Mock streaming response for testing."""

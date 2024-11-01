@@ -24,7 +24,7 @@ class AppLog_Controller():
         #pub.subscribe(self.on_log, "applog")
         pub.subscribe(self.done_display, "done_display")
         #pub.subscribe(self.display_response, "display_response")
-        pub.subscribe(self.set_header, "set_header")
+        #pub.subscribe(self.set_header, "set_header")
         pub.subscribe(self.on_page_back, "back")
         pub.subscribe(self.on_page_forward, "forward")  
     def on_page_back(self):
@@ -89,7 +89,12 @@ class AppLog_Controller():
         
         self.replace_log_content(row["text"] )   
         #wx.CallAfter(self.refresh_log)
-       
+        
+    def scroll_to_bottom(self):
+        # Scroll to the bottom of the ScrolledWindow
+        max_y = self.scroll_window.GetScrollRange(wx.VERTICAL)
+        self.scroll_window.Scroll(0, max_y)
+
     def replace_log_content(self, content):
         # Step 1: Convert Markdown to HTML with fenced code blocks enabled
         html_content = markdown2.markdown(content, extras=["fenced-code-blocks"])
@@ -156,10 +161,22 @@ class AppLog_Controller():
         sanitized_content = final_content.replace("`", "\\`")
         
         # Inject the processed HTML content into the webview
-        self.web_view.RunScript(f"replaceLogContent(`{sanitized_content}`);")
+        #self.web_view.RunScript(f"replaceLogContent(`{sanitized_content}`);")
+        if self.auto_scroll_on:
+
+            self.web_view.RunScript(f"""
+                replaceLogContent(`{sanitized_content}`);
+                setTimeout(() => {{
+                    window.scrollTo(0, document.body.scrollHeight);
+                }}, 100);
+            """)
+        else:
+            self.web_view.RunScript(f"replaceLogContent(`{sanitized_content}`);")
+
+        #wx.CallAfter(self.scroll_to_bottom)
     def replace_header(self, content):
         # Use JavaScript to replace content in the header row
-        sanitized_content = content.replace("`", "\\`")+f' [{apc.processor_model_name}]'  # Escape backticks for JavaScript
+        sanitized_content = content.replace("`", "\\`")+f' [{self.model_name}]'  # Escape backticks for JavaScript
         self.web_view.RunScript(f"replaceHeader(`{sanitized_content}`);")
     def append_log_content(self, content):
         # Use JavaScript to append content to the single row
@@ -278,10 +295,14 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
     def __init__(self, parent):
         super().__init__(parent)
         AppLog_Controller.__init__(self)
-        
+        self.scroll_window = wx.ScrolledWindow(self, style=wx.VSCROLL)
+        self.scroll_window.SetScrollRate(0, 20)
+
         # Create the WebView control
-        self.web_view = wx.html2.WebView.New(self)
-        
+        self.web_view = wx.html2.WebView.New(self.scroll_window)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.web_view, 1, wx.EXPAND)
+        self.scroll_window.SetSizer(sizer)        
         # Attach custom scheme handler
         self.attach_custom_scheme_handler()
 
@@ -296,14 +317,15 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
 
         # Create sizer to organize the WebView
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.web_view, 1, wx.EXPAND, 0)
+        sizer.Add(self.scroll_window, 1, wx.EXPAND, 0)
         sizer.Add(self.nav_panel, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(sizer)
         self.content_buffer = ""
-        pub.subscribe(self.ask_model, "ask_model")
+        #pub.subscribe(self.ask_model, "ask_model")
+        pub.subscribe(self.set_prompt, "set_prompt")
         self.Layout()
         self.listen_on=False
-    def ask_model(self, prompt):
+    def set_prompt(self, prompt):
         self.ask_model_text.SetValue(prompt)    
     async def consume_question_queue(self, queue):
         # Continuously consume the queue and update WebView
@@ -370,11 +392,18 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
             self.listen_button = wx.Button(self.nav_panel, label="Listen:OFF")
             self.listen_button.SetMinSize((-1, 60)) 
             self.listen_button.SetBackgroundColour(wx.Colour(255, 228, 181))  # Light color for visibility
-            
-            self.listen_button.Bind(wx.EVT_BUTTON, self.on_listen)   
+        if 1:
+            self.auto_scroll_button = wx.Button(self.nav_panel, label="Auto Scroll\nOFF")
+            self.auto_scroll_button.SetBackgroundColour(wx.Colour(144, 238, 144))  # Green for ON state
+            self.auto_scroll_button.Bind(wx.EVT_BUTTON, self.on_auto_scroll_button)
+            self.auto_scroll_button.SetMinSize(wx.Size(-1, -1))
+            self.auto_scroll_on = False  # Initial state            
+          
+
         l_sizer.Add(back_button, 0, wx.ALL , 5)         
-        l_sizer.Add(self.listen_button, 0, wx.ALL, 5)   
-        nav_sizer.Add(l_sizer, 0,  wx.ALL, 5)       
+        l_sizer.Add(self.listen_button, 0, wx.ALL, 5) 
+        l_sizer.Add(self.auto_scroll_button, 0, wx.ALL, 5)    
+        nav_sizer.Add(l_sizer, 0,  wx.ALL, 5)     
         if 1:
 
             # Add a spacer to push the "Forward" button to the far right
@@ -387,6 +416,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
             font.SetPointSize(11)  # Adjust the size as desired
             self.ask_model_text.SetFont(font)
             self.ask_model_text.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        m_sizer = wx.BoxSizer(wx.VERTICAL)
         if 1:
         
             self.ask_model_button = wx.Button(self.nav_panel, label="Ask Model")
@@ -394,14 +424,23 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
             #self.ask_model_button.Bind(wx.EVT_BUTTON, self.on_ask_model_button)
             AsyncBind (wx.EVT_BUTTON, self.on_ask_model_button, self)
             self.ask_model_button.SetMinSize(wx.Size(-1, 80))
-            nav_sizer.Add(self.ask_model_button, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)  # Add to the sizer
+            m_sizer.Add(self.ask_model_button, 0, wx.ALL , 5)  # Add to the sizer
+        if 1:
+        
+            self.clear_history_button = wx.Button(self.nav_panel, label="Clear\nHistory")
+            self.clear_history_button.SetBackgroundColour(wx.Colour(211, 211, 211))  # Green for ON state
+            #self.ask_model_button.Bind(wx.EVT_BUTTON, self.on_ask_model_button)
+            self.clear_history_button.Bind(wx.EVT_BUTTON, self.on_clear_history_button)
+            self.clear_history_button.SetMinSize(wx.Size(-1, -1))
+            m_sizer.Add(self.clear_history_button, 0, wx.ALL , 5)  # Add to the sizer            
+        nav_sizer.Add(m_sizer, 0, wx.ALL , 5) 
             
 
         if 0:
             self.model_names = ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4o", ]  # Populate with actual model names
             self.model_dropdown = wx.Choice(self.nav_panel, choices=self.model_names)
             self.model_dropdown.SetSelection(0)  # Set the default selection
-            apc.processor_model_name = self.model_names[0]  # Set the default model name
+            self.model_name = self.model_names[0]  # Set the default model name
             nav_sizer.Add(self.model_dropdown, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)  # Add to the sizer
             self.model_dropdown.Bind(wx.EVT_CHOICE, self.on_model_selection)
         if 1:
@@ -410,7 +449,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
             self.model_radio_box = wx.RadioBox(self.nav_panel, label="Select Model", choices=self.model_names,
                 majorDimension=1, style=wx.RA_SPECIFY_COLS)
             self.model_radio_box.SetSelection(0)  # Set default selection
-            apc.processor_model_name = self.model_names[0]  # Set default model name
+            self.model_name = self.model_names[0]  # Set default model name
             nav_sizer.Add(self.model_radio_box, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
             self.model_radio_box.Bind(wx.EVT_RADIOBOX, self.on_model_selection)            
 
@@ -440,6 +479,23 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         pub.subscribe(self.on_flip_colors, "ask_model")   
         #pub.subscribe(self.on_done_processing, "done_display")
         pub.subscribe(self.on_stream_closed, "stream_closed2")
+    def on_auto_scroll_button(self, event):
+        # Toggle auto-scroll state
+        self.auto_scroll_on = not self.auto_scroll_on
+        if self.auto_scroll_on:
+            self.auto_scroll_button.SetLabel("Auto Scroll\nON")
+            self.auto_scroll_button.SetBackgroundColour(wx.Colour(144, 238, 144))  # Green for ON
+            #apc.auto_scroll = True  # Set your app's auto-scroll state
+            #self.set_initial_content()
+        else:
+            self.auto_scroll_button.SetLabel("Auto Scroll\nOFF")
+            self.auto_scroll_button.SetBackgroundColour(wx.Colour(255, 182, 193))  # Red for OFF
+            #apc.auto_scroll = False  # Set your app's auto-scroll state
+
+        self.auto_scroll_button.Refresh()  # Ensure color update is visible        
+    def on_clear_history_button(self, event):
+        print('on_clear_history_button')
+        apc.question_processor.clear_history()        
     def on_listen(self, event):  
         print('on_listen')  
         self.listen_on = not self.listen_on
@@ -467,19 +523,19 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         prompt = self.ask_model_text.GetValue()
         #pub.sendMessage("ask_model", prompt=prompt)
         self.flip_colors()
-        self.display_response(f'<h3>{prompt}</h3>')
-        await apc.question_processor.run_stream_response(prompt) 
+        self.display_response(f'<h3>{prompt} [{self.model_name}]</h3>')
+        await apc.question_processor.run_stream_response(prompt, self.model_name) 
     def on_model_selection(self, event):
         """Handles the selection change in the model dropdown."""
         selected_model = self.model_dropdown.GetStringSelection()
-        apc.processor_model_name = selected_model  # Update the selected model name
+        self.model_name = selected_model  # Update the selected model name
     def on_model_selection(self, event):
         # Get the selected model name based on the RadioBox selection
         selected_model_index = self.model_radio_box.GetSelection()
         selected_model_name = self.model_names[selected_model_index]
 
         # Set the processor's model name to the selected one
-        apc.processor_model_name = selected_model_name
+        self.model_name = selected_model_name
         
         # Optional: Print or log the selected model to verify
         print(f"Model selected: {selected_model_name}")
@@ -540,7 +596,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
                 print(f"Selected text for model: {selected_text}")
                 # Pass selected_text to your model for inference
                 pub.sendMessage("ask_model", prompt=selected_text)
-                await apc.question_processor.run_stream_response(selected_text)  
+                await apc.question_processor.run_stream_response(selected_text, self.model_name)  
 
     def on_navigating(self, event):
         url = event.GetURL()
@@ -629,16 +685,21 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
                 border-top: 1px solid #ddd;
                 margin: 0;
             }
+        #log-container {
+            max-height: 500px;  
+            overflow-y: auto;   
+        }            
         </style>
         </head>
         <body>
-            <table id="log-table">
-           
-                <tr><td><hr></td></tr>
-                <tr id="log-row">
-                    <td id="log-cell"></td>
-                </tr>
-            </table>
+        <table  id="log-container">
+            <tr><td><hr></td></tr>
+            <tr id="log-row">
+                <td >  
+                    <div id="log-cell"></div>
+                </td>
+            </tr>
+        </table>
             <script>
                 // Function to replace header content
                 function replaceHeader(content) {

@@ -13,8 +13,9 @@ class AsyncProcessor:
         self.queue = queue
         #self.client= openai.OpenAI()
         self.conversation_history=[]
-
-    async def run_stream_response(self, prompt):
+    def clear_history(self):
+        self.conversation_history=[]
+    async def run_stream_response(self, prompt, model):
        
         ch=self.conversation_history
         client= openai.OpenAI()
@@ -23,11 +24,11 @@ class AsyncProcessor:
         # Create a chat completion request with streaming enabled
         #pp(conversation_history)
         #pp(ch)  
-        print('MODEL:', apc.processor_model_name)
-        assert apc.processor_model_name
+        print('MODEL:', model)
+        assert model
         if 1:
             response = client.chat.completions.create(
-                model=apc.processor_model_name,
+                model=model,
                 messages=ch, 
                 stream=True
             )
