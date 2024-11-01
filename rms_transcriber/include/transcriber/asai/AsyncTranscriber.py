@@ -40,7 +40,7 @@ class AsyncTranscriber:
         
         self.transcriber = aai.RealtimeTranscriber(
             sample_rate=16_000,
-            word_boost=["aws", "azure", "google cloud", 'PySpark'],
+            #word_boost=["aws", "azure", "google cloud", 'PySpark'],
             #boost_param="high",
             #disable_partial_transcripts=True
             on_data=self.on_data,

@@ -79,7 +79,7 @@ def recognize(q):
                 config = aai.TranscriptionConfig(
                     language_code=apc.asai_lang, 
                     filter_profanity=False,
-                    speaker_labels=True,
+                    #speaker_labels=True,
                     #speech_threshold=0.1
                     )
                 transcriber = aai.Transcriber(config=config)

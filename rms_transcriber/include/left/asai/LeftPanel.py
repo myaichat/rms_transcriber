@@ -77,4 +77,4 @@ class LeftPanel(wx.Panel):
     def on_button_click(self, event):
         #print('on_button_click')
         self.tree.on_test_populate()
-        self.tree_2.on_test_populate()
+        #self.tree_2.on_test_populate()

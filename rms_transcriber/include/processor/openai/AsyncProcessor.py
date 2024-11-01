@@ -11,14 +11,14 @@ apc = init_config.apc
 class AsyncProcessor:
     def __init__(self, queue):
         self.queue = queue
-        #self.client= openai.OpenAI()
+        self.client= openai.OpenAI()
         self.conversation_history=[]
     def clear_history(self):
         self.conversation_history=[]
     async def run_stream_response(self, prompt, model):
        
         ch=self.conversation_history
-        client= openai.OpenAI()
+        client= self.client
         #ch=[]
         ch.append({"role": "user", "content": prompt})
         # Create a chat completion request with streaming enabled

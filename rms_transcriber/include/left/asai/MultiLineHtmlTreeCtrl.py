@@ -160,7 +160,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
                 parent1 = self.AppendMultilineItem(item_id, self.root, transcript, pad_item=False)
                 self.ExpandAll()  # Expanding within the main thread 
                 new_html_item=self.html_items[item_id] 
-                if apc.auto_scroll:
+                if 0 and apc.auto_scroll:
                     self.EnsureVisible(new_html_item.tree_item)
         if new_html_item:
             new_html_item.is_stream_closed=True
