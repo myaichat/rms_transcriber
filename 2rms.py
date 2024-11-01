@@ -56,6 +56,7 @@ class _RMSFrame(wx.Frame):
 from rms_transcriber.include.frame.asai_RMSFrame import RMSFrame     
 apc.mock=False
 apc.processor_model_name=None
+apc.asai_lang = "en"
 class SelectionDialog(wx.Dialog):
     def __init__(self, parent, title="Select Option"):
         super().__init__(parent, title=title, size=(300, 200))
@@ -64,6 +65,7 @@ class SelectionDialog(wx.Dialog):
         # Create radio buttons for selection
         self.radio_option1 = wx.RadioButton(self.panel, label="en-US", style=wx.RB_GROUP)
         self.radio_option2 = wx.RadioButton(self.panel, label="uk-UA")
+        self.radio_option3 = wx.RadioButton(self.panel, label="ru-RU")
         # OK and Cancel buttons
         ok_button = wx.Button(self.panel, label="OK")
         cancel_button = wx.Button(self.panel, label="Cancel")
@@ -77,6 +79,7 @@ class SelectionDialog(wx.Dialog):
         radio_sizer = wx.BoxSizer(wx.HORIZONTAL)
         radio_sizer.Add(self.radio_option1, 0, wx.ALL, 5)
         radio_sizer.Add(self.radio_option2, 0, wx.ALL, 5)
+        radio_sizer.Add(self.radio_option3, 0, wx.ALL, 5)
         
 
         # Layout for buttons, aligned to the bottom-right corner
@@ -94,14 +97,19 @@ class SelectionDialog(wx.Dialog):
 
         # Center the dialog on the screen
         self.CenterOnScreen()
+        self.selected_option = "en-US"
 
     def on_ok(self, event):
         # Determine which radio button is selected
         if self.radio_option1.GetValue():
             self.selected_option = "en-US"
+            apc.asai_lang = "en"
         elif self.radio_option2.GetValue():
             self.selected_option = "uk-UA"
-
+            apc.asai_lang = "uk"
+        elif self.radio_option3.GetValue():
+            self.selected_option = "ru-RU"
+            apc.asai_lang = "ru"
         
         self.EndModal(wx.ID_OK)
 
@@ -186,7 +194,14 @@ def _long_running_process(q):
 
                 # Upload the local audio file using requests
                 assert os.path.isfile(file_name)
-                transcriber = aai.Transcriber()
+                print(apc.asai_lang)
+                #e()
+                config = aai.TranscriptionConfig(
+                    language_code=apc.asai_lang, 
+                    filter_profanity=False,
+                    #speech_threshold=0.1
+                    )
+                transcriber = aai.Transcriber(config=config)
                 transcript = transcriber.transcribe(file_name)
                 #pp (dir(transcript))
                 print('THREAT RECOGNIZE:', transcript.text, tid, rid) 
@@ -200,7 +215,7 @@ def _long_running_process(q):
 
 async def main():
     app = WxAsyncApp() 
-    frame = RMSFrame( title="RMS Transcribe for Google Speech", size=(1200, 1000))
+    frame = RMSFrame( title="RMS Transcribe for Assembly AI", size=(1200, 1000))
     frame.Show()
     await app.MainLoop()
 async def main():
@@ -215,7 +230,7 @@ async def main():
             print("Exiting app as dialog was canceled.")
             return  # Exit if the dialog is canceled    
         #Resumable Microphone Streaming 
-    frame = RMSFrame(  title="RMS Transcribe for Google Speech", size=(1200, 1000))
+    frame = RMSFrame(  title="RMS Transcribe for Assembly AI", size=(1200, 1000))
     #frame.SetSize((1200, 1000)) 
     frame.Show()
     frame.CenterOnScreen()

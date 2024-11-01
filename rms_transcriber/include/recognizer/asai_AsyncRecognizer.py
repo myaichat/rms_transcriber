@@ -19,7 +19,12 @@ aai.settings.api_key = os.getenv("ASSEMBLY_API_KEY")
 class AsyncRecognizer:
     def __init__(self, queue):
         self.queue = queue
-        self.transcriber = aai.Transcriber()
+        config = aai.TranscriptionConfig(
+            language_code="en", 
+            filter_profanity=False,
+            speech_threshold=0.1
+            )
+        self.transcriber = aai.Transcriber(config=config)
 
     async def consume_recognizer_queue(self, queue):
         # Continuously consume the queue and update WebView
@@ -31,6 +36,7 @@ class AsyncRecognizer:
             #queue.task_done()
          
     async def transcribe(self, content):
+        e()
         file_name,tid, rid = content
         #websocket=self.websocket
         print(f"ASAI: AsyncRecognizer: Transcribing: {file_name}",tid, rid)

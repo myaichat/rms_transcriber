@@ -35,9 +35,14 @@ class AsyncTranscriber:
         self.pid = 0
         self.loop = asyncio.get_event_loop()
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
-
+        #config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best)
+        #language="en"
+        
         self.transcriber = aai.RealtimeTranscriber(
             sample_rate=16_000,
+            word_boost=["aws", "azure", "google cloud", 'PySpark'],
+            #boost_param="high",
+            #disable_partial_transcripts=True
             on_data=self.on_data,
             on_error=self.on_error,
             on_open=self.on_open,
@@ -89,6 +94,7 @@ class AsyncTranscriber:
 
     def on_open(self, session_opened: aai.RealtimeSessionOpened):
         print("Session ID:", session_opened.session_id)
+        #self.transcriber.set_config(language_code="ru")
 
     def on_data(self, transcript: aai.RealtimeTranscript):
         if not transcript.text:

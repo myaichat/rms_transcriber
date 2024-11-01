@@ -108,17 +108,17 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
                 self.content_buffer = [] # Clear buffer after update
             await asyncio.sleep(0.2)  # Update every 200ms
     def on_append_recognized_stream(self, item_id, transcript):
-        pp(self.html_items) 
-        print('wwwwwwwwwwwwww on_append_recognized_stream', transcript, item_id)
+        #pp(self.html_items) 
+        #print('wwwwwwwwwwwwww on_append_recognized_stream', transcript, item_id)
         if transcript.strip():
             #pp(self.html_items)
-            for k,v in self.html_items.items():
-                print(k, v.text_item)
+            #for k,v in self.html_items.items():
+            #    print(k, v.text_item)
             html_item=self.html_items[item_id]
             
             tree_item=self.html_items[item_id].tree_item
             recog_item_id=f'{item_id}:{html_item.recorg_count}'
-            print(html_item.recorg_count)
+            #print(html_item.recorg_count)
             parent1 = self.AppendMultilineItem(recog_item_id, tree_item, transcript, pad_item=False)
             html_item.recorg_count += 1
             recog_item=self.html_items[recog_item_id]

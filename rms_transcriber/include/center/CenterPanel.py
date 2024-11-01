@@ -302,6 +302,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         self.content_buffer = ""
         pub.subscribe(self.ask_model, "ask_model")
         self.Layout()
+        self.listen_on=False
     def ask_model(self, prompt):
         self.ask_model_text.SetValue(prompt)    
     async def consume_askmodel_queue(self, queue):
@@ -354,15 +355,25 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         self.nav_panel.SetBackgroundColour(wx.Colour(255, 255, 255))
         # Back Button
         self.back_button = back_button=wx.StaticText(self.nav_panel, label="Back")
-              
-        back_button.Bind(wx.EVT_LEFT_DOWN, self.on_back)
-        nav_sizer.Add(back_button, 0, wx.ALL, 5)
-        font = back_button.GetFont()
-        font.SetUnderlined(True)
-        font.SetPointSize(12)  # Set to desired font size
-        back_button.SetFont(font)           
-        self.back_button.SetForegroundColour(wx.Colour(0, 0, 255))  # Blue for active state
-        self.disable_back()
+        l_sizer= wx.BoxSizer(wx.VERTICAL)
+        if 1:  
+            back_button.Bind(wx.EVT_LEFT_DOWN, self.on_back)
+            #nav_sizer.Add(back_button, 0, wx.ALL, 5)
+            font = back_button.GetFont()
+            font.SetUnderlined(True)
+            font.SetPointSize(12)  # Set to desired font size
+            back_button.SetFont(font)           
+            self.back_button.SetForegroundColour(wx.Colour(0, 0, 255))  # Blue for active state
+            self.disable_back()
+        if 1:
+            self.listen_button = wx.Button(self.nav_panel, label="Listen:OFF")
+            self.listen_button.SetMinSize((-1, 60)) 
+            self.listen_button.SetBackgroundColour(wx.Colour(255, 228, 181))  # Light color for visibility
+            
+            self.listen_button.Bind(wx.EVT_BUTTON, self.on_listen)   
+        l_sizer.Add(back_button, 0, wx.ALL , 5)         
+        l_sizer.Add(self.listen_button, 0, wx.ALL, 5)   
+        nav_sizer.Add(l_sizer, 0,  wx.ALL, 5)       
         if 1:
 
             # Add a spacer to push the "Forward" button to the far right
@@ -385,13 +396,22 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
             nav_sizer.Add(self.ask_model_button, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)  # Add to the sizer
             
 
-        if 1:
+        if 0:
             self.model_names = ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4o", ]  # Populate with actual model names
             self.model_dropdown = wx.Choice(self.nav_panel, choices=self.model_names)
             self.model_dropdown.SetSelection(0)  # Set the default selection
             apc.processor_model_name = self.model_names[0]  # Set the default model name
             nav_sizer.Add(self.model_dropdown, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)  # Add to the sizer
             self.model_dropdown.Bind(wx.EVT_CHOICE, self.on_model_selection)
+        if 1:
+            # Model RadioBox (instead of dropdown)
+            self.model_names = ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4o"]  # Populate with actual model names
+            self.model_radio_box = wx.RadioBox(self.nav_panel, label="Select Model", choices=self.model_names,
+                majorDimension=1, style=wx.RA_SPECIFY_COLS)
+            self.model_radio_box.SetSelection(0)  # Set default selection
+            apc.processor_model_name = self.model_names[0]  # Set default model name
+            nav_sizer.Add(self.model_radio_box, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.model_radio_box.Bind(wx.EVT_RADIOBOX, self.on_model_selection)            
 
         if 1:     
             v_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -418,6 +438,18 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         self.web_view.SetWindowStyle(wx.NO_BORDER)   
         pub.subscribe(self.on_flip_colors, "ask_model")   
         #pub.subscribe(self.on_done_processing, "done_display")
+        pub.subscribe(self.on_stream_closed, "stream_closed2")
+    def on_listen(self, event):  
+        print('on_listen')  
+        self.listen_on = not self.listen_on
+        self.listen_button.SetLabel(f"Listen:{'ON' if self.listen_on else 'OFF'}")
+    def on_stream_closed    (self, data):
+        transcript, corrected_time, tid, rid = data
+        print('on_stream_closed')
+        if self.listen_on:
+            self.ask_model_text.SetValue(transcript)
+            self.listen_on = not self.listen_on
+            self.listen_button.SetLabel(f"Listen:{'ON' if self.listen_on else 'OFF'}")
     def on_key_down(self, event):
         # Check if Ctrl is pressed with Enter
         if event.ControlDown() and event.GetKeyCode() == wx.WXK_RETURN:
@@ -643,66 +675,7 @@ class ProcessorPanel(wx.Panel,AppLog_Controller):
         print(333333, self.page_history)
         #self.web_view.LoadURL(f"file://{tmp_file}")
 
-
-    def _set_initial_content(self):
-        initial_html = """
-        <html>
-        <body>
-        <table id="log-table" style="font-size: 16px;">
-            <tr id="log-row">
-                <td id="log-cell"></td>
-            </tr>
-        </table>
-        <script>
-            function replaceLogContent(content) {
-                const cell = document.getElementById('log-cell');
-                cell.innerHTML = content;
-            }
-        </script>
-        </body>
-        </html>
-        """
-        self.web_view.SetPage(initial_html, "")
-
-    def _set_initial_content(self):
-        initial_html = """
-        <html>
-        <body>
-        <table id="log-table" style="font-size: 16px;">
-            <tr id="log-row">
-                <td id="log-cell"></td>
-            </tr>
-        </table>
-        <script>
-            function appendToLog(content) {
-                const cell = document.getElementById('log-cell');
-                cell.innerHTML += content + "<br>";
-            }
-        </script>
-        </body>
-        </html>
-        """
-        self.web_view.SetPage(initial_html, "")
-    def _set_initial_content(self):
-        html = self.get_log_html()
-        initial_html = f"""
-        <html>
-        <body>
-        <table id="log-table" style="font-size: 16px;">{html}</table>
-        <script>
-            function addLogEntry(content) {{
-                const table = document.getElementById('log-table');
-                const row = document.createElement('tr');
-                const cell = document.createElement('td');
-                cell.innerHTML = content;
-                row.appendChild(cell);
-                table.appendChild(row);
-            }}
-        </script>
-        </body>
-        </html>
-        """
-        self.web_view.SetPage(initial_html, "")    
+ 
     def add_log_entry(self, content):
         # Call the JavaScript function to add a log entry
         self.web_view.RunScript(f"addLogEntry(`{content}`);")
