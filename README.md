@@ -1,7 +1,7 @@
 # rms_transcriber
-RMS Transcribe for Google Speech
+RMS Transcribe for Assembly AI
 
 ```
 set ASSEMBLY_API_KEY=your-key
-python rms2.py
+python asai_rms_transcriber.py
 ```
