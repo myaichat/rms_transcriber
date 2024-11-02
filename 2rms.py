@@ -204,8 +204,8 @@ def _long_running_process(q):
                 transcriber = aai.Transcriber(config=config)
                 transcript = transcriber.transcribe(file_name)
                 #pp (dir(transcript))
-                print('THREAT RECOGNIZE:', transcript.text, tid, rid) 
-                pub.sendMessage("stream_recognized", data=('ASAI pub: '+transcript.text, tid, rid))
+                #print('THREAT RECOGNIZE:', transcript.text, tid, rid) 
+                pub.sendMessage("stream_recognized", data=(transcript.text, tid, rid))
 
 
             q.task_done()  # Mark the task as done
@@ -215,7 +215,7 @@ def _long_running_process(q):
 
 async def main():
     app = WxAsyncApp() 
-    frame = RMSFrame( title="RMS Transcribe for Assembly AI", size=(1200, 1000))
+    frame = RMSFrame( title="RMS Transcriber for Assembly AI", size=(1200, 1000))
     frame.Show()
     await app.MainLoop()
 async def main():

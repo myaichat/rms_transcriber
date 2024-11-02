@@ -93,6 +93,8 @@ class AppLog_Controller():
        
     def replace_log_content(self, content):
         # Step 1: Convert Markdown to HTML with fenced code blocks enabled
+        if self.model_name == "gpt-3.5-turbo":
+            content=content.replace("\n", "<br>")
         html_content = markdown2.markdown(content, extras=["fenced-code-blocks"])
 
         # Step 2: Initialize Pygments formatter with inline CSS for syntax highlighting

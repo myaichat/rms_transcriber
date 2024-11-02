@@ -49,7 +49,7 @@ class AsyncRecognizer:
             transcript=transcription.text
             #if transcript:
             #await apc.transcriber.queue.put(['ASAI 1: '+transcript,'stream_recognized', tid, rid])
-            pub.sendMessage("stream_recognized", data=('ASAI pub: '+transcript, tid, rid))
+            pub.sendMessage("stream_recognized", data=(transcript, tid, rid))
 
             await asyncio.sleep(0.1)
 

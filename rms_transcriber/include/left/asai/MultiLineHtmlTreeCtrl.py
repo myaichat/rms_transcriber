@@ -39,7 +39,7 @@ class MultiLineHtmlTreeCtrl(CT.CustomTreeCtrl):
         self.html_items={}
         self.content_buffer = []
     def on_stream_recognized(self, data):
-        print('ASAI on_stream_recognized', data)
+        #print('ASAI on_stream_recognized', data)
         transcript, tid, rid = data
         #print('on_stream_recognized')
         if transcript.strip():

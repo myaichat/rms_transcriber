@@ -89,7 +89,7 @@ def recognize(q):
                     for utterance in transcript.utterances:
                         print(f"Speaker {utterance.speaker}: {utterance.text}")
                 print('THREAT RECOGNIZE:', transcript.text, tid, rid) 
-                pub.sendMessage("stream_recognized", data=('ASAI pub: '+transcript.text, tid, rid))
+                pub.sendMessage("stream_recognized", data=(transcript.text, tid, rid))
 
 
             q.task_done()  # Mark the task as done

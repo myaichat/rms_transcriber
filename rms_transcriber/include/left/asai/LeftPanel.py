@@ -14,7 +14,7 @@ class LeftPanel(wx.Panel):
         if 1: 
             self.tree = MultiLineHtmlTreeCtrl(left_notebook)
             
-            left_notebook.AddPage(self.tree, "A_HtmlTree")
+            left_notebook.AddPage(self.tree, "Caller Log")
         if 0:
             self.tree_2 = MultiLineTreeCtrl(left_notebook)
             left_notebook.AddPage(self.tree_2, "A_Tree")        
@@ -23,8 +23,17 @@ class LeftPanel(wx.Panel):
         
         #left_notebook.SetSelection(3)
 
-        self.button = wx.Button(self, label="Populate A  List")
+        self.button = wx.Button(self, label="Populate\nList")
         self.button.Bind(wx.EVT_BUTTON, self.on_button_click)
+        if 1:
+            self.caller_button = wx.Button(self, label="Caller: ON")
+            self.caller_button.SetBackgroundColour(wx.Colour(144, 238, 144))  # Green for ON state
+            self.caller_button.Bind(wx.EVT_BUTTON, self.on_caller_button)
+            self.caller_button.SetMinSize(wx.Size(100, 60))
+            apc.caller_on = True  # Initial state  
+        
+        
+   
         if 0:
             self.auto_scroll_checkbox = wx.CheckBox(self, label="Auto Scroll")
             self.auto_scroll_checkbox.SetValue(True)  # Set default to checked
@@ -35,11 +44,12 @@ class LeftPanel(wx.Panel):
             self.auto_scroll_button.Bind(wx.EVT_BUTTON, self.on_auto_scroll_button)
             self.auto_scroll_button.SetMinSize(wx.Size(-1, 40))
             self.auto_scroll_on = True  # Initial state            
-        apc.auto_scroll = True
+            apc.auto_scroll = True
 
         h_sizer = wx.BoxSizer(wx.HORIZONTAL)
         
         h_sizer.Add(self.button, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        h_sizer.Add(self.caller_button, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         #add filler
         h_sizer.AddStretchSpacer()
         h_sizer.Add(self.auto_scroll_button, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 1)
@@ -49,6 +59,18 @@ class LeftPanel(wx.Panel):
         sizer.Add(h_sizer, 0, wx.EXPAND| wx.ALL, 1)
         self.SetSizer(sizer)
         self.Bind(wx.EVT_SIZE, self.on_panel_resize)
+    def on_caller_button(self, event):
+        # Toggle auto-scroll state
+        self.auto_scroll_on = not self.auto_scroll_on
+        if self.auto_scroll_on:
+            self.caller_button.SetLabel("Caller: ON")
+            self.caller_button.SetBackgroundColour(wx.Colour(144, 238, 144))  # Green for ON
+            apc.caller_on = True  # Set your app's auto-scroll state
+        else:
+            self.caller_button.SetLabel("Caller: OFF")
+            self.caller_button.SetBackgroundColour(wx.Colour(255, 182, 193))  # Red for OFF
+            apc.caller_on = False  # Set your app's auto-scroll state
+        self.caller_button.Refresh()  # Ensure color update is visible        
     def on_auto_scroll_button(self, event):
         # Toggle auto-scroll state
         self.auto_scroll_on = not self.auto_scroll_on

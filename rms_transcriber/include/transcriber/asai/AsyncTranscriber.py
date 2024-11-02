@@ -99,18 +99,23 @@ class AsyncTranscriber:
     def on_data(self, transcript: aai.RealtimeTranscript):
         if not transcript.text:
             return
-
+        if not apc.caller_on:
+            return
         if isinstance(transcript, aai.RealtimeFinalTranscript):
             print(777, transcript.text, end="\r\n")
             current_rid = self.rid
-            pub.sendMessage("stream_closed2", data=(f'final pub {self.tid}:{self.rid}: {transcript.text}', None, self.tid, current_rid))
-
-            self.loop.call_soon_threadsafe(lambda: asyncio.create_task(apc.trans_queue.put([f'Fin await {self.tid}:{self.rid}: {transcript.text}', 'stream_closed', self.tid, current_rid])))
+            data=f'final pub {self.tid}:{self.rid}: {transcript.text}'
+            data=f'{transcript.text}'
+            pub.sendMessage("stream_closed2", data=(data, None, self.tid, current_rid))
+            data=f'Fin await {self.tid}:{self.rid}: {transcript.text}'
+            data=f'{transcript.text}'   
+            self.loop.call_soon_threadsafe(lambda: asyncio.create_task(apc.trans_queue.put([data, 'stream_closed', self.tid, current_rid])))
 
             item_id = f'{self.tid}.{self.rid}'
             new_audio_data = self.audio_input[self.last_saved_index:]
 
             print(f"Attempting to save audio chunk with item_id: {item_id}")
+            
             if 1:
                 future = asyncio.run_coroutine_threadsafe(
                     self.save_audio_chunk(item_id, new_audio_data, self.chunk_counter, current_rid),
