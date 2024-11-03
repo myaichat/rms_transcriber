@@ -6,6 +6,10 @@ audio_chunks/
 # C extensions
 *.so
 log/
+cache/
+audio_chunks/
+recordings/
+
 # Distribution / packaging
 .Python
 build/
