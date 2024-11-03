@@ -10,7 +10,7 @@ import io
 from scipy.io import wavfile
 import os
 from time import sleep
-from pprint import pprint as pp
+
 def setup_whisper_model(model_id="openai/whisper-large-v3", cache_dir="cache"):
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
@@ -38,10 +38,7 @@ def setup_whisper_model(model_id="openai/whisper-large-v3", cache_dir="cache"):
     )
     
     return pipe, processor, model
-filter=['booom','thank you','thank you.','uh',"I'm sorry.".lower(),'i''m sorry','i''m sorry.','bang!','boom!', 'yeah!',
-            'Thank you. I''m sorry'.lower(),'you', 'the end','Thank you for watching.'.lower(),
-            'boom'
-            'SHUT UP!']
+
 class SpeechServer:
     def __init__(self, host='127.0.0.1', port=5000):
         # Network setup
@@ -108,12 +105,11 @@ class SpeechServer:
                 self.record_callback, 
                 phrase_time_limit=self.record_timeout
             )
-            tid=0
+
             while self.running:
                 now = datetime.utcnow()
                 
                 if not self.data_queue.empty():
-                    
                     phrase_complete = False
                     # If enough time has passed since last audio, consider the phrase complete
                     if self.phrase_time and (now - self.phrase_time).total_seconds() > self.phrase_timeout:
@@ -140,20 +136,16 @@ class SpeechServer:
 
                     # Get transcription
                     text = self.process_audio(audio_array)
-
+                    
                     # Update current text for this phrase
                     if phrase_complete:
                         # Send the last completed phrase only
-                        if self.current_text.strip() and self.current_text.strip().lower() !='':
-                            if self.current_text.strip().lower() not in filter:
-                                result = {
-                                    'type': 'transcription',
-                                    'text': self.current_text.strip(),
-                                    'complete': True,
-                                    'tid': tid
-                                }
-                                pp(result)
-                                tid= tid+1
+                        result = {
+                            'type': 'transcription',
+                            'text': self.current_text.strip(),
+                            'complete': True
+                        }
+                        print(result)
                         try:
                             client_socket.send(json.dumps(result).encode() + b'\n')
                         except:
@@ -164,20 +156,18 @@ class SpeechServer:
                     else:
                         # Accumulate text within the ongoing phrase
                         self.current_text = text
-                    if not phrase_complete:
-                        # Send an incomplete result with the current transcription
-                        if  self.current_text.strip() and self.current_text.strip().lower() !='':
-                            if self.current_text.strip().lower() not in filter:
-                                result = {
-                                    'type': 'transcription',
-                                    'text': self.current_text.strip(),
-                                    'complete': phrase_complete
-                                }
-                                print( result)
-                        try:
-                            client_socket.send(json.dumps(result).encode() + b'\n')
-                        except:
-                            break
+
+                    # Send an incomplete result with the current transcription
+                    result = {
+                        'type': 'transcription',
+                        'text': self.current_text.strip(),
+                        'complete': phrase_complete
+                    }
+                    print(result)
+                    try:
+                        client_socket.send(json.dumps(result).encode() + b'\n')
+                    except:
+                        break
 
                     # Clear transcription buffer if phrase complete
                     if phrase_complete:
@@ -186,19 +176,16 @@ class SpeechServer:
                 else:
                     # If silence_start has passed, send the final "complete" transcription
                     if self.silence_start and (now - self.silence_start).total_seconds() >= self.phrase_timeout:
-                        if  self.current_text.strip() and self.current_text.strip().lower() !='':
-                            if self.current_text.strip().lower() not in filter:
-
-                                result = {
-                                    'type': 'transcription',
-                                    'text': self.current_text.strip(),
-                                    'complete': True
-                                }
-                                print(result)
-                                try:
-                                    client_socket.send(json.dumps(result).encode() + b'\n')
-                                except:
-                                    break
+                        result = {
+                            'type': 'transcription',
+                            'text': self.current_text.strip(),
+                            'complete': True
+                        }
+                        print(result)
+                        try:
+                            client_socket.send(json.dumps(result).encode() + b'\n')
+                        except:
+                            break
                         self.last_sample = bytes()  # Reset for the next phrase
                         self.current_text = ""     # Clear current text
                         self.silence_start = None  # Reset silence tracking
